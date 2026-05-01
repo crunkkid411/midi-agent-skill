@@ -1,3 +1,15 @@
+# Generated MIDI/WAV outputs (rendered locally, not source-of-truth)
+/output/*.mid
+/output/*.wav
+
+# Generated composition.json files; keep README + intentionally committed examples
+/plans/*.composition.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
 ### Node template
 # Logs
 logs

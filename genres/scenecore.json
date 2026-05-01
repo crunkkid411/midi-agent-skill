@@ -1,0 +1,115 @@
+{
+  "name": "scenecore",
+  "aliases": ["scene-core", "hyperpop-scenecore"],
+  "tempo_range": [135, 160],
+  "default_key": "A minor",
+  "common_keys": ["A minor", "E minor", "F# minor"],
+  "scales": ["minor", "harmonic_minor", "minor_pentatonic"],
+  "chord_progressions": [
+    {
+      "roman": ["i", "VI", "III", "VII"],
+      "weight": 1.0,
+      "source": "Common scenecore/emo-trap loop",
+      "bars_per_chord": 2.0
+    },
+    {
+      "roman": ["i", "VI"],
+      "weight": 0.8,
+      "source": "Two-chord stab loop",
+      "bars_per_chord": 4.0
+    },
+    {
+      "roman": ["i9", "VI9"],
+      "weight": 0.4,
+      "source": "Glossier hyperpop variant",
+      "bars_per_chord": 4.0
+    }
+  ],
+  "voicing_style": "stab",
+  "drum_patterns": [
+    {
+      "name": "trap-breakcore-140",
+      "kick":  "x..x.x..x..x.x..",
+      "snare": "....x.......x...",
+      "hh":    "xxxxxxxxxxxxxxxx",
+      "oh":    "................",
+      "clap":  "....x.......x...",
+      "swing": 0.5,
+      "ghost_density": 0.15,
+      "weight": 1.0
+    },
+    {
+      "name": "halftime-drop",
+      "kick":  "x.......x.......",
+      "snare": "........x.......",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "swing": 0.5,
+      "ghost_density": 0.0,
+      "weight": 0.5
+    }
+  ],
+  "song_sections": [
+    {
+      "name": "intro",
+      "bars": 4,
+      "density": 0.4,
+      "note": "Filtered synth stab + reversed FX, no drums",
+      "micro": []
+    },
+    {
+      "name": "verse",
+      "bars": 8,
+      "density": 0.7,
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.6, "note": "Chord stabs + bass, sparse drums" },
+        { "name": "B", "bars": 4, "density": 0.85, "note": "Full kit kicks in, build to drop" }
+      ]
+    },
+    {
+      "name": "drop",
+      "bars": 8,
+      "density": 1.0,
+      "micro": [
+        { "name": "A", "bars": 4, "density": 1.0, "note": "Maximum density, full stack" },
+        { "name": "B", "bars": 4, "density": 0.95, "note": "Lead arpeggio variation" }
+      ]
+    },
+    {
+      "name": "outro",
+      "bars": 4,
+      "density": 0.3,
+      "note": "Strip to filtered chords, halftime feel"
+    }
+  ],
+  "instruments": [
+    { "role": "drums", "register": [35, 81], "style": "trap_breakcore", "velocity_range": [0.5, 0.95] },
+    { "role": "bass", "gm": "synth-bass-1", "register": [28, 45], "style": "sub_808_distorted", "velocity_range": [0.7, 0.9] },
+    { "role": "chords", "gm": "lead-2-sawtooth", "register": [55, 76], "style": "stab", "velocity_range": [0.55, 0.8] },
+    { "role": "lead", "gm": "lead-1-square", "register": [67, 88], "style": "fast_arpeggio", "velocity_range": [0.6, 0.85] }
+  ],
+  "velocity_ranges": {
+    "drums": [0.4, 0.95],
+    "chords": [0.5, 0.8],
+    "melody": [0.6, 0.85],
+    "bass": [0.7, 0.9]
+  },
+  "principles": [
+    "Hyperpop chord stabs — minor key, simple i-VI loop, sharp staccato attacks with short release",
+    "Aggressive trap/breakcore drums at 140 BPM with fast 16th-note hi-hats and hard 808 kicks",
+    "Distorted maximum texture — sub bass with overdrive, bright supersaw stabs, high velocities (0.6-0.9)",
+    "Energy contrast — stripped intro/outro vs. wall-of-sound drop; halftime variation in section B"
+  ],
+  "references": [
+    { "artist": "100 gecs", "song": "money machine" },
+    { "artist": "underscores", "song": "Spoiled Little Brat" }
+  ],
+  "research_sources": [
+    "Ported from claude_code/plans/scenecore-composition.md (Ace-Step DAW reference)"
+  ],
+  "sound_design": {
+    "synth_presets": {},
+    "drum_samples": {},
+    "fx_chain": []
+  },
+  "notes": "Seeded from the Ace-Step scenecore plan. Drum pattern is 16-step (16ths)."
+}

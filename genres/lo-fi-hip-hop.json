@@ -1,0 +1,103 @@
+{
+  "name": "lo-fi-hip-hop",
+  "aliases": ["lofi", "lo-fi", "lofi-hip-hop", "chillhop"],
+  "tempo_range": [70, 92],
+  "default_key": "D Dorian",
+  "common_keys": ["D Dorian", "F Dorian", "C minor", "A minor"],
+  "scales": ["dorian", "minor_pentatonic", "minor"],
+  "chord_progressions": [
+    {
+      "roman": ["i9", "iv9", "iiø7", "V7b9"],
+      "weight": 1.0,
+      "source": "Nujabes - Feather (jazz minor cycle)",
+      "bars_per_chord": 1.0
+    },
+    {
+      "roman": ["i7", "VI7", "ii7", "V7"],
+      "weight": 0.7,
+      "source": "Common ii-V minor cycle",
+      "bars_per_chord": 1.0
+    },
+    {
+      "roman": ["i9", "IVmaj9"],
+      "weight": 0.6,
+      "source": "Two-chord chillhop loop",
+      "bars_per_chord": 2.0
+    }
+  ],
+  "voicing_style": "extended_7th_9th",
+  "drum_patterns": [
+    {
+      "name": "boom-bap-lazy",
+      "kick":  "x.....x...x.....",
+      "snare": "....x.......x...",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "oh":    "............x...",
+      "swing": 0.58,
+      "ghost_density": 0.3,
+      "weight": 1.0
+    },
+    {
+      "name": "halftime-dusty",
+      "kick":  "x.......x.......",
+      "snare": "........x.......",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "swing": 0.6,
+      "ghost_density": 0.4,
+      "weight": 0.6
+    }
+  ],
+  "song_sections": [
+    {
+      "name": "intro",
+      "bars": 4,
+      "density": 0.4,
+      "note": "Filtered chords, vinyl crackle, no drums",
+      "micro": []
+    },
+    {
+      "name": "loop",
+      "bars": 8,
+      "density": 0.75,
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.7, "note": "Drums + bass + chords, no melody" },
+        { "name": "B", "bars": 4, "density": 0.85, "note": "Add melodic lead" }
+      ]
+    },
+    {
+      "name": "outro",
+      "bars": 4,
+      "density": 0.3,
+      "note": "Strip to chords + filtered drums"
+    }
+  ],
+  "instruments": [
+    { "role": "drums", "register": [35, 81], "style": "boom_bap_lazy", "velocity_range": [0.3, 0.8] },
+    { "role": "bass", "gm": "fingered-bass", "register": [36, 50], "style": "sustained_root", "velocity_range": [0.5, 0.7] },
+    { "role": "chords", "gm": "electric-piano-1", "register": [55, 75], "style": "sparse_held", "velocity_range": [0.35, 0.55] },
+    { "role": "melody", "gm": "vibraphone", "register": [67, 84], "style": "pentatonic_sparse", "velocity_range": [0.45, 0.7] }
+  ],
+  "velocity_ranges": {
+    "drums": [0.3, 0.8],
+    "chords": [0.35, 0.55],
+    "melody": [0.45, 0.7],
+    "bass": [0.5, 0.7]
+  },
+  "principles": [
+    "Jazz-rooted harmony with 7th/9th voicings and Dorian color (bIII, ii-V minor cycles)",
+    "Laid-back boom-bap drums slightly behind the beat with ghost notes and light swing",
+    "Sparse, pentatonic melody with lots of rests and space — the texture breathes",
+    "Warm, dusty texture — Rhodes/EP chords, sub bass, vinyl-style imperfection"
+  ],
+  "references": [
+    { "artist": "Nujabes", "song": "Feather" },
+    { "artist": "J Dilla", "song": "Donuts (Time, the Donut of the Heart)" }
+  ],
+  "research_sources": [],
+  "sound_design": {
+    "synth_presets": {},
+    "drum_samples": {},
+    "fx_chain": []
+  },
+  "notes": "Default seed profile. Boom-bap pattern is 16-step."
+}

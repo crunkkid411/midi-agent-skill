@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "midi-agent-skill/genre-profile",
+  "title": "Genre Profile",
+  "description": "Cacheable artifact produced by the music-theory research workflow. Consumed by composers/ to generate deterministic MIDI compositions.",
+  "type": "object",
+  "required": ["name", "tempo_range", "default_key", "scales", "chord_progressions", "drum_patterns", "song_sections", "instruments", "principles"],
+  "properties": {
+    "name": { "type": "string", "description": "Slug, lowercase-hyphenated. Must match filename." },
+    "aliases": { "type": "array", "items": { "type": "string" } },
+    "tempo_range": {
+      "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer", "minimum": 20, "maximum": 300 },
+      "description": "[min_bpm, max_bpm]"
+    },
+    "default_key": { "type": "string", "description": "e.g. 'D Dorian', 'C minor'" },
+    "common_keys": { "type": "array", "items": { "type": "string" } },
+    "scales": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Mode/scale names: 'major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'aeolian', 'locrian', 'minor_pentatonic', 'major_pentatonic', 'blues', 'harmonic_minor', 'melodic_minor'"
+    },
+    "chord_progressions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["roman"],
+        "properties": {
+          "roman": { "type": "array", "items": { "type": "string" }, "description": "Roman numerals: 'i', 'i7', 'i9', 'V7', 'iiø7', 'bVI', etc. Lowercase = minor, UPPERCASE = major. Suffixes: 7, 9, 11, 13 for extensions; ø = half-dim; ° = dim; b/# for chromatic." },
+          "weight": { "type": "number", "default": 1.0 },
+          "source": { "type": "string" },
+          "bars_per_chord": { "type": "number", "default": 1.0 }
+        }
+      }
+    },
+    "voicing_style": {
+      "type": "string",
+      "enum": ["triads", "extended_7th_9th", "power_chords", "open_voicings", "stab", "sustained"],
+      "default": "triads"
+    },
+    "drum_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "kick": { "type": "string", "description": "16-step grid: 'x' hit, '.' rest, 'g' ghost. Length determines resolution (8/16/32 steps)." },
+          "snare": { "type": "string" },
+          "hh": { "type": "string", "description": "Closed hi-hat" },
+          "oh": { "type": "string", "description": "Open hi-hat" },
+          "clap": { "type": "string" },
+          "perc": { "type": "string", "description": "Extra percussion (rim, cowbell, etc)" },
+          "swing": { "type": "number", "minimum": 0.5, "maximum": 0.75, "default": 0.5 },
+          "ghost_density": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+          "weight": { "type": "number", "default": 1.0 }
+        }
+      }
+    },
+    "song_sections": {
+      "type": "array",
+      "description": "Default song sections for this genre. Each may have micro-sections (verse.A, verse.B, chorus.drop) for nuanced addressing.",
+      "items": {
+        "type": "object",
+        "required": ["name", "bars"],
+        "properties": {
+          "name": { "type": "string", "enum": ["intro", "verse", "pre-chorus", "chorus", "drop", "bridge", "break", "outro", "loop"] },
+          "bars": { "type": "integer", "minimum": 1 },
+          "density": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.7 },
+          "note": { "type": "string" },
+          "micro": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "bars"],
+              "properties": {
+                "name": { "type": "string", "description": "Sub-block label: 'A', 'B', 'drop', 'break'" },
+                "bars": { "type": "integer", "minimum": 1 },
+                "density": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                "note": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "instruments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": { "type": "string", "enum": ["drums", "bass", "chords", "melody", "pad", "lead", "fx"] },
+          "gm": { "type": "string", "description": "GM instrument slug from midi_types/gm_instruments.py. Null/absent for drums." },
+          "register": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer", "minimum": 0, "maximum": 127 } },
+          "style": { "type": "string", "description": "Free-form playing style: 'sustained_root', 'walking', 'arpeggio', 'stab', 'pentatonic_sparse'" },
+          "velocity_range": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 } }
+        }
+      }
+    },
+    "velocity_ranges": {
+      "type": "object",
+      "description": "Optional per-role overrides keyed by role name.",
+      "additionalProperties": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } }
+    },
+    "principles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "2-4 distilled human-readable principles that define the genre. Drives composer behavior + agent self-evaluation."
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "artist": { "type": "string" },
+          "song": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      }
+    },
+    "research_sources": { "type": "array", "items": { "type": "string" } },
+    "sound_design": {
+      "type": "object",
+      "description": "Forward-compat. Synth presets, drum sample paths, FX chains. Currently informational; composers ignore it.",
+      "properties": {
+        "synth_presets": { "type": "object" },
+        "drum_samples": { "type": "object" },
+        "fx_chain": { "type": "array" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

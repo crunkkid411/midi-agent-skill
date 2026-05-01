@@ -1,16 +1,23 @@
-# MIDI Generation Skill
+# midi-agent-skill
 
-**MIDI Generation Skill** is a custom **Agent Skill for Claude.ai** that enables AI agents to generate MIDI files from natural language music descriptions, with full **General MIDI instrument support** optimized for the **A320U.sf2 SoundFont**.
+A research-first MIDI composition skill for AI agents. The agent
+researches a genre once (cached as a JSON profile), then deterministic
+Python composers blend profiles and emit MIDI through a context-aware
+**Lego Pipeline** (chords → drums → bass → melody → lead). Each layer
+"hears" all previous layers, so the song is coherent from the ground up.
+
+The skill is **agent-agnostic** — anything that can read a SKILL.md and
+run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 
 ---
 
-## Features
+## What's Different
 
-- Generate MIDI from text prompts
-- 128 GM instruments - Full General MIDI support (A320U.sf2 compatible)
-- WAV export - Convert MIDI to audio using FluidSynth
-- Claude Skills compatible - Automatic skill invocation
-- Python implementation using midiutil
+- **Research-first composition** — the agent reads `workflows/compose.md`, researches the genre's chord progressions, drum patterns, structure, and instrumentation, and saves a reusable `genres/<slug>.json` profile.
+- **Deterministic Python composers** — once a profile exists, generation is rule-based and rate-limit-free. AI is used where it adds value (research, brief writing, evaluation), Python where determinism matters (note placement, MIDI rendering).
+- **Genre blending** — combine 2-4 profiles with weights to compose in hybrid styles.
+- **Micro-section addressability** — request "add a drum break in verse 2 B" and regenerate exactly those 4 bars without disturbing the rest of the song.
+- **Layer overrides** — user-provided ideas (a bassline, a chord progression) slot directly into the pipeline alongside generated parts. Human-AI collaboration on the same composition.
 
 ---
 
@@ -18,28 +25,66 @@
 
 ```
 /
-├─ skills/                   # Skill implementation (Python)
-│   ├─ generate_midi.py          # MIDI file generation
-│   ├─ convert_to_wav.py         # MIDI to WAV conversion (FluidSynth)
-│   ├─ normalize_composition.py  # Input validation
-│   └─ refine_composition.py     # Adjust composition length
+├─ SKILL.md                          # Skill definition + workflow overview
+├─ workflows/                        # Process docs (the agent's playbook)
+│   ├─ compose.md                    # End-to-end composition workflow
+│   ├─ music-theory-research.md      # How to research a genre + fill a profile
+│   ├─ genre-profile-spec.md         # Profile schema reference
+│   ├─ lego-pipeline.md              # Context-aware sequential generation
+│   ├─ quick-research.md             # Inline lookups
+│   └─ brainstorm.md                 # Multi-approach exploration
+├─ genres/                           # Cached genre profiles (JSON)
+│   ├─ _schema.json
+│   ├─ lo-fi-hip-hop.json
+│   └─ scenecore.json                # Seeded from Ace-Step DAW reference
+├─ composers/                        # Deterministic Python builders
+│   ├─ theory.py                     # Scales, Roman numerals, drum mapping
+│   ├─ profile.py                    # Load / blend profiles
+│   ├─ structure.py                  # Bars → sections (incl. micro)
+│   ├─ chords.py
+│   ├─ drums.py                      # Honors per-section density
+│   ├─ bass.py                       # Locks to drum kicks for 808 styles
+│   ├─ melody.py
+│   └─ pipeline.py                   # Lego Pipeline + section regeneration
+├─ skills/                           # Entry-point scripts
+│   ├─ compose_from_profile.py       # Main CLI
+│   ├─ generate_midi.py              # Composition → .mid
+│   ├─ normalize_composition.py
+│   ├─ refine_composition.py
+│   └─ convert_to_wav.py             # MIDI → WAV (FluidSynth)
 ├─ midi_types/
-│   ├─ music.py                  # Composition types
-│   └─ gm_instruments.py         # 128 GM instruments list
-├─ resources/                # Music theory references
-│   ├─ music-theory.md
-│   ├─ chord-progressions.md
-│   ├─ voice-leading.md
-│   ├─ counterpoint.md
-│   ├─ modes-scales.md
-│   ├─ rhythm-patterns.md
-│   └─ orchestration.md
-├─ soundfonts/               # Place A320U.sf2 here
-├─ output/                   # Generated MIDI/WAV files
-├─ SKILL.md                  # Claude Skill definition
-├─ requirements.txt          # Python dependencies
-└─ README.md
+│   ├─ music.py                      # Composition / Track / Note / Section
+│   ├─ genre_profile.py              # Profile dataclasses
+│   └─ gm_instruments.py
+├─ resources/                        # Music theory lookup references
+├─ plans/                            # Per-song briefs + composition.json
+├─ claude_code/                      # Ace-Step DAW reference (for porting)
+├─ soundfonts/                       # Place A320U.sf2 here
+└─ output/                           # Generated .mid / .wav files
 ```
+
+---
+
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+
+# Single-genre 8-bar loop (default length)
+python skills/compose_from_profile.py --genres lo-fi-hip-hop --title chillsong
+
+# Blend genres
+python skills/compose_from_profile.py \
+    --genres scenecore,lo-fi-hip-hop --weights 0.6,0.4 \
+    --bars 16 --title hybrid
+
+# Regenerate just the drums in verse 2 B
+python skills/compose_from_profile.py \
+    --genres scenecore --resume plans/hybrid.composition.json \
+    --regenerate verse2.B --layers drums --seed 17
+```
+
+Output goes to `plans/<title>.composition.json` and `output/<title>.mid`.
 
 ---
 
