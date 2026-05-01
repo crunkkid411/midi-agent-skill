@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:aesthetics.fandom.com)",
+      "WebFetch(domain:blog.native-instruments.com)",
+      "WebFetch(domain:www.chosic.com)",
+      "WebFetch(domain:strudel.cc)",
+      "Bash(curl -s --max-time 3 -i http://127.0.0.1:5174/ws/mcp-bridge)",
+      "Bash(netstat -ano)",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_pages",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script"
+    ]
+  }
+}
