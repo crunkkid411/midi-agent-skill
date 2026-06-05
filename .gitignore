@@ -131,3 +131,7 @@ dist
 .pnp.*
 
 .DS_Store
+# Intern secrets / runtime state
+intern/config.json
+intern/spend_ledger.json
+intern/STOP
