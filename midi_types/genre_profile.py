@@ -54,6 +54,7 @@ class DrumPattern:
     weight: float = 1.0
     kick_follow: bool = False
     feel: Optional[str] = None          # "halftime", "double_time", "blast" — informational
+    layer: str = "acoustic"             # "acoustic" (role drums) | "electronic" (role electronic_drums)
 
     def all_lanes(self) -> Dict[str, str]:
         out = {k: getattr(self, k) for k in DRUM_GRID_FIELDS}
@@ -72,8 +73,9 @@ class DrumPattern:
 
 # Keys a section / micro-section / form entry may set to steer composers.
 SECTION_BINDING_KEYS = (
-    "energy", "drum_pattern", "progression", "scale", "riff_style", "bass_style",
-    "melody_style", "voicing", "fill", "stop", "mute", "crash", "kick_follow",
+    "energy", "drum_pattern", "electronic_pattern", "progression", "scale", "riff_style",
+    "bass_style", "melody_style", "chords_style", "voicing", "fill", "stop", "mute", "crash",
+    "kick_follow", "double_track", "automation", "tempo", "tempo_scale",
 )
 
 
@@ -93,9 +95,21 @@ class SectionBindings:
     mute: roles silent in this section (["melody", "lead"]).
     crash: False suppresses the crash on the section's downbeat.
     kick_follow: force the kick to double the rhythm guitar.
+    electronic_pattern: pattern(s) for the electronic drum layer here (silent where unset).
+    chords_style: chords/pad style override here (stab, trance_gate, follow_riff, ...).
+    double_track: take relationship here: identical | variation | octave | harmony.
+    automation: controller moves over the section, e.g.
+      [{"param": "filter", "shape": "ramp_up", "roles": ["pad"], "from": 0.2, "to": 1.0}]
+    tempo / tempo_scale: absolute BPM, or a multiple of the song tempo, for this section.
     """
     energy: Optional[float] = None
     drum_pattern: Any = None
+    electronic_pattern: Any = None
+    chords_style: Optional[str] = None
+    double_track: Optional[str] = None
+    automation: List[Dict[str, Any]] = field(default_factory=list)
+    tempo: Optional[float] = None
+    tempo_scale: Optional[float] = None
     progression: Any = None
     scale: Optional[str] = None
     riff_style: Optional[str] = None
@@ -147,6 +161,32 @@ class FormEntry:
 
 
 @dataclass
+class DoubleTrack:
+    """Multi-take recording of one part. takes: 2 (L/R) or 4 (L/R + inner L2/R2).
+    mode (overridable per section via the `double_track` binding):
+      identical — same notes, independent timing/velocity (tight, breakdowns)
+      variation — the right take changes some melodic notes / pinches (verses)
+      octave    — the right take plays its open (non-chug) notes an octave up (choruses)
+      harmony   — the right take plays its open notes a diatonic 3rd up
+    Chugs (palm mutes) stay identical in every mode — that is what keeps it tight."""
+    takes: int = 2
+    mode: str = "identical"
+    pan: float = 1.0
+    inner_pan: float = 0.6
+    variation_rate: float = 0.15
+
+    @classmethod
+    def parse(cls, value) -> Optional["DoubleTrack"]:
+        if not value:
+            return None
+        if value is True:
+            return cls()
+        if isinstance(value, str):
+            return cls(mode=value)
+        return cls(**{k: v for k, v in value.items() if k in cls.__dataclass_fields__})
+
+
+@dataclass
 class InstrumentRole:
     role: str                           # "drums", "rhythm_guitar", "bass", "chords", "melody", "pad", "lead"
     gm: Optional[str] = None            # GM instrument name (None for drum kits)
@@ -155,8 +195,9 @@ class InstrumentRole:
     velocity_range: Tuple[float, float] = (0.5, 0.8)
     vst: Optional[str] = None           # instrument map slug (instruments/<slug>.json)
     voicing: Optional[str] = None       # overrides profile.voicing_style for this role
-    double_track: bool = False          # render L/R takes with independent humanization
+    double_track: Optional[DoubleTrack] = None  # multi-take recording (see DoubleTrack)
     articulations: Dict[str, Any] = field(default_factory=dict)  # e.g. {"pinch_harmonic_rate": 0.05}
+    play_in: List[str] = field(default_factory=list)  # section names this role plays in (empty = all)
 
 
 @dataclass
@@ -266,8 +307,9 @@ class GenreProfile:
                     velocity_range=tuple(i.get("velocity_range", [0.5, 0.8])),
                     vst=i.get("vst"),
                     voicing=i.get("voicing"),
-                    double_track=bool(i.get("double_track", False)),
+                    double_track=DoubleTrack.parse(i.get("double_track")),
                     articulations=i.get("articulations", {}),
+                    play_in=i.get("play_in", []),
                 )
                 for i in data.get("instruments", [])
             ],

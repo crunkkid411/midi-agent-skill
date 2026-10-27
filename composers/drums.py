@@ -21,6 +21,13 @@ Musical behaviour layered on top of the grid:
     kick_snare_burst, snare_build, open_hat, drop_out, stop_hit)
   - stop sections: one kick+crash hit, then silence
   - energy (0-1) scales velocity; density gates hats/ghosts
+
+Two layers share this composer. layer="acoustic" (role drums) uses
+patterns without a layer tag and the `drum_pattern` binding.
+layer="electronic" (role electronic_drums, e.g. a UJAM Beatmaker drum
+machine reinforcing the kit or carrying a dance break) uses patterns tagged
+"layer": "electronic" and plays only in sections that bind
+`electronic_pattern`; it gets no automatic crashes or fills.
 """
 
 from typing import Dict, List, Optional
@@ -48,20 +55,26 @@ def generate_drums(
     sections: List[Section],
     rng: Optional[random.Random] = None,
     riff_attacks: Optional[list] = None,
+    layer: str = "acoustic",
 ) -> Track:
     rng = rng or random.Random()
-    if not profile.drum_patterns:
-        return Track(notes=[], name="Drums", is_drum=True, role="drums")
+    electronic = layer == "electronic"
+    role = "electronic_drums" if electronic else "drums"
+    name = "Electronic Drums" if electronic else "Drums"
+    pool = [p for p in profile.drum_patterns if (p.layer == "electronic") == electronic]
+    if not pool:
+        return Track(notes=[], name=name, is_drum=True, role=role)
 
-    vmin, vmax = velocity_range(profile, "drums")
+    vmin, vmax = velocity_range(profile, role)
     notes: List[Note] = []
     tops = {s.name: s for s in top_sections(sections)}
     top_choice: Dict[str, DrumPattern] = {}
-    fills = profile.fills
-    phrase = fills.phrase_bars if fills else 4
+    fills = None if electronic else profile.fills
+    phrase = profile.fills.phrase_bars if profile.fills else 4
+    binding = "electronic_pattern" if electronic else "drum_pattern"
 
     for leaf in leaf_sections(sections):
-        if is_muted(leaf, "drums"):
+        if is_muted(leaf, role) or (electronic and not leaf.bindings.get(binding)):
             continue
         top = tops.get(leaf.name.partition(".")[0], leaf)
         density = section_density(profile, leaf)
@@ -74,7 +87,7 @@ def generate_drums(
                 notes.append(_note(lane, t, hi, "8"))
             continue
 
-        patterns = _patterns_for(profile, leaf, top, density, rng, top_choice)
+        patterns = _patterns_for(profile, pool, leaf, top, density, rng, top_choice, binding)
         follow = leaf.bindings.get("kick_follow")
         prev = None
         for bar in range(leaf.start_bar, leaf.end_bar + 1):
@@ -88,7 +101,7 @@ def generate_drums(
             leaf_downbeat = bar == leaf.start_bar and crash_flag is not False and \
                 (bar == top.start_bar or crash_flag is True)
             crash_here = leaf_downbeat or (prev is not None and pattern is not prev)
-            if crash_here and energy >= 0.3:
+            if crash_here and energy >= 0.3 and not electronic:
                 _crash(notes, downbeat, hi)
             prev = pattern
 
@@ -96,22 +109,22 @@ def generate_drums(
             _place_fills(profile, leaf, top, phrase, density, energy, lo, hi, rng, notes)
 
     notes.sort(key=lambda n: (n.start, n.drum or ""))
-    return Track(name="Drums", instrument=None, is_drum=True, notes=notes, role="drums")
+    return Track(name=name, instrument=None, is_drum=True, notes=notes, role=role)
 
 
 # -------- pattern selection --------
 
-def _patterns_for(profile, leaf, top, density, rng, cache) -> List[DrumPattern]:
-    want = leaf.bindings.get("drum_pattern")
+def _patterns_for(profile, pool, leaf, top, density, rng, cache, binding) -> List[DrumPattern]:
+    want = leaf.bindings.get(binding)
     if want:
         names = want if isinstance(want, list) else [want]
-        found = [p for p in (find_drum_pattern(profile, n) for n in names) if p]
+        found = [p for p in (find_drum_pattern(profile, n) for n in names) if p and p in pool]
         if found:
             return found
-    if density < 0.4 and len(profile.drum_patterns) > 1:
-        return [min(profile.drum_patterns, key=_energy)]
+    if density < 0.4 and len(pool) > 1:
+        return [min(pool, key=_energy)]
     if top.name not in cache:
-        cache[top.name] = pick_weighted(profile.drum_patterns, rng=rng)
+        cache[top.name] = pick_weighted(pool, rng=rng)
     return [cache[top.name]]
 
 

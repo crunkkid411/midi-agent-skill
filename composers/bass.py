@@ -11,7 +11,14 @@ guitar). Style comes from section binding `bass_style` → instrument style:
   - root_eighths        → driving 8th-note roots (punk, rock, metal choruses)
   - octave              → root / octave-up 8ths (disco, dance, scenecore)
   - arpeggio            → root-fifth-octave-fifth 8ths
+  - wobble              → one held root per bar (pair with a `wobble` automation
+                          on filter/mod for dubstep-style bass)
 Stop sections get a single held root; muted sections are silent.
+
+The same composer renders role "synth_bass" (an EDM/dubstep layer under the
+bass guitar). instruments[].articulations.glide_rate makes kick-locked /
+808 notes occasionally slide up an octave (articulation "glide": the
+renderer overlaps the notes so mono synths glide).
 """
 
 from typing import List, Optional
@@ -37,15 +44,18 @@ def generate_bass(
     key: Optional[str] = None,
     rng: Optional[random.Random] = None,
     riff_track: Optional[Track] = None,
+    role: str = "bass",
 ) -> Track:
     rng = rng or random.Random()
-    inst = get_instrument(profile, "bass")
+    inst = get_instrument(profile, role)
+    name = "Synth Bass" if role == "synth_bass" else "Bass"
     if inst is None:
-        return Track(notes=[], name="Bass", role="bass")
+        return Track(notes=[], name=name, role=role)
 
     tonic_pc, _ = parse_key(key or profile.default_key)
     register = inst.register
-    vmin, vmax = velocity_range(profile, "bass")
+    vmin, vmax = velocity_range(profile, role)
+    glide_rate = float(inst.articulations.get("glide_rate", 0.0))
     guitar_low = lowest_string(profile.tuning)
     bass_low = max(register[0], guitar_low - 12) if guitar_low else register[0]
 
@@ -66,9 +76,9 @@ def generate_bass(
 
     for span in timeline:
         sec = span.section
-        if is_muted(sec, "bass"):
+        if is_muted(sec, role):
             continue
-        style = (style_for(sec, "bass", inst.style or "sustained_root") or "").lower()
+        style = (style_for(sec, role, inst.style or "sustained_root") or "").lower()
         tones = chord_pitches(span.roman, tonic_pc, span.scale, base_octave=2)
         root = pedal_note(tones[0] % 12, bass_low) if guitar_low else midi_in_register(tones[0], register)
         fifth = midi_in_register(root + 7, register)
@@ -83,6 +93,12 @@ def generate_bass(
 
         if style in ("sustained_root", "sustained"):
             add(root, span.start, dur)
+        elif style == "wobble":
+            t = span.start
+            while t < span.end - 1e-6:
+                bar_end = min(span.end, (int(t // 4) + 1) * 4)
+                add(root, t, bar_end - t, vmax)
+                t = bar_end
         elif style == "walking":
             scale_intervals = SCALES.get(span.scale, SCALES["minor"])
             for beat in range(int(dur)):
@@ -101,7 +117,12 @@ def generate_bass(
                 hits = [span.start + b for b in range(int(dur))]
             for i, t in enumerate(hits):
                 nxt = next((h for h in hits[i + 1:]), span.end)
-                add(root if i % 4 != 2 else fifth, t, max(0.25, min(1.0, nxt - t)))
+                beats = max(0.25, min(1.0, nxt - t))
+                if glide_rate and i > 0 and rng.random() < glide_rate and root + 12 <= register[1] + 12:
+                    add(root, t, beats, art="glide")
+                    add(root + 12, t + beats * 0.5, beats * 0.5, art="glide")
+                else:
+                    add(root if i % 4 != 2 else fifth, t, beats)
         elif style == "root_eighths":
             for s in range(int(dur * 2)):
                 add(root, span.start + s * 0.5, 0.5,
@@ -118,7 +139,7 @@ def generate_bass(
             if dur >= 4:
                 add(fifth, span.start + 2, 2.0)
 
-    return Track(name="Bass", instrument=inst.gm or "electric-bass-finger", notes=notes, role="bass")
+    return Track(name=name, instrument=inst.gm or "electric-bass-finger", notes=notes, role=role)
 
 
 def _double(riff: Track, span: ChordSpan, register, bass_low, vmin, vmax, rng, out) -> None:

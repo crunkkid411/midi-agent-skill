@@ -7,7 +7,7 @@ Runs composers in order — each layer 'hears' all previous layers:
 
 The default layer order is
 
-    chords → pad → rhythm_guitar → drums → bass → melody → lead
+    chords → pad → rhythm_guitar → drums → electronic_drums → bass → synth_bass → melody → lead
 
 and a profile can reorder it (`layer_order`). Riff-driven genres put
 rhythm_guitar first so the kick (kick_follow) and the bass (style
@@ -18,7 +18,10 @@ Callers can override any layer by passing a pre-built Track in
 track instead (later layers still hear it). After composing, each track
 is tagged with its role and target instrument map (profile
 `instruments[].vst`, or `vst_overrides` from the CLI — any VST, any
-genre), humanized, and double-tracked (L/R takes) where the role asks.
+genre), given its section automation (filter sweeps, sidechain pumps,
+wobbles, pitch dives), split into takes where the role is double/quad
+tracked (composers/doubling.py), and humanized per take. Section `tempo` /
+`tempo_scale` bindings become the composition's tempo map.
 """
 
 from typing import Dict, Optional, List
@@ -34,10 +37,13 @@ from .riff import generate_riff, Attack
 from .drums import generate_drums
 from .bass import generate_bass
 from .melody import generate_melody
+from .automation import apply_automation
+from .doubling import make_takes
 from .profile import get_instrument
 
 
-DEFAULT_LAYER_ORDER = ["chords", "pad", "rhythm_guitar", "drums", "bass", "melody", "lead"]
+DEFAULT_LAYER_ORDER = ["chords", "pad", "rhythm_guitar", "drums", "electronic_drums",
+                       "bass", "synth_bass", "melody", "lead"]
 LAYER_ORDER = DEFAULT_LAYER_ORDER  # backwards-compatible name
 
 
@@ -117,14 +123,17 @@ def compose(
             if role == "rhythm_guitar":
                 attacks = _attacks_from_track(track)
         elif role in ("chords", "pad"):
-            track = generate_chords(profile, sections, timeline, key=chosen_key, rng=rng, role=role)
+            track = generate_chords(profile, sections, timeline, key=chosen_key, rng=rng, role=role,
+                                    riff_attacks=attacks)
         elif role == "rhythm_guitar":
             track, attacks = generate_riff(profile, sections, timeline, key=chosen_key, rng=rng)
-        elif role == "drums":
-            track = generate_drums(profile, sections, rng=rng, riff_attacks=attacks)
-        elif role == "bass":
+        elif role in ("drums", "electronic_drums"):
+            track = generate_drums(profile, sections, rng=rng, riff_attacks=attacks,
+                                   layer="electronic" if role == "electronic_drums" else "acoustic")
+        elif role in ("bass", "synth_bass"):
             track = generate_bass(profile, sections, timeline, drum_track=built.get("drums"),
-                                  key=chosen_key, rng=rng, riff_track=built.get("rhythm_guitar"))
+                                  key=chosen_key, rng=rng, riff_track=built.get("rhythm_guitar"),
+                                  role=role)
         else:  # melody / lead
             track = generate_melody(profile, sections, timeline, drum_track=built.get("drums"),
                                     key=chosen_key, role=role, rng=rng,
@@ -133,10 +142,12 @@ def compose(
         if track.notes or role in overrides:
             built[role] = track
 
+    rendered = [r for r in layer_order(profile)
+                if r in built and not (r in context and r not in layers)]
+    apply_automation([built[r] for r in rendered if r not in overrides], sections)
+
     tracks: List[Track] = []
-    for role in layer_order(profile):
-        if role not in built or (role in context and role not in layers):
-            continue
+    for role in rendered:
         track = built[role]
         inst = get_instrument(profile, role)
         track.vst = vst_overrides.get(role) or vst_overrides.get("all") or track.vst or (inst.vst if inst else None)
@@ -144,10 +155,12 @@ def compose(
             tracks.append(track)
             continue
         if inst is not None and inst.double_track:
-            for side, pan in (("L", -1.0), ("R", 1.0)):
-                take = _humanize(_copy(track, f"{track.name} {side}", pan), profile,
-                                 stream(f"humanize:{role}:{side}"), minimum=(0.012, 0.05))
-                tracks.append(take)
+            takes = make_takes(track, inst.double_track, sections, timeline, chosen_key,
+                               inst.register, stream(f"takes:{role}"))
+            for take in takes:
+                side = take.name.rsplit(" ", 1)[-1]
+                tracks.append(_humanize(take, profile, stream(f"humanize:{role}:{side}"),
+                                        minimum=(0.012, 0.05)))
         else:
             tracks.append(_humanize(track, profile, stream(f"humanize:{role}")))
 
@@ -160,7 +173,24 @@ def compose(
         sections=sections,
         key=chosen_key,
         tuning=_tuning_name(profile.tuning),
+        tempo_map=tempo_map(sections, chosen_bpm),
     )
+
+
+def tempo_map(sections: List[Section], bpm: float) -> List[tuple]:
+    """Section `tempo` (absolute) / `tempo_scale` (x song tempo) → [(beat, bpm)].
+    A change is written at the section start and the song tempo is restored
+    after it, so a slowed breakdown snaps back for the next chorus."""
+    out: List[tuple] = []
+    current = bpm
+    for sec in sorted((s for s in sections if not s.is_micro), key=lambda s: s.start_bar):
+        b = sec.bindings
+        want = b.get("tempo") or (bpm * b["tempo_scale"] if b.get("tempo_scale") else bpm)
+        want = round(float(want), 2)
+        if abs(want - current) > 1e-6:
+            out.append((sec.start_beat(), want))
+            current = want
+    return out
 
 
 def regenerate_section(
@@ -238,13 +268,14 @@ def regenerate_section(
         new_tracks.append(Track(
             notes=kept, instrument=original.instrument, is_drum=original.is_drum,
             name=original.name, role=original.role, vst=original.vst, pan=original.pan,
+            automation=original.automation,
         ))
 
     return Composition(
         title=composition.title, bpm=composition.bpm, tracks=new_tracks,
         bars=composition.bars, sections=composition.sections,
         time_signature=composition.time_signature, key=composition.key,
-        tuning=composition.tuning,
+        tuning=composition.tuning, tempo_map=composition.tempo_map,
     )
 
 
@@ -256,7 +287,8 @@ def _track_role(track: Track) -> str:
     if track.is_drum:
         return "drums"
     name = (track.name or "").lower()
-    for role in ("rhythm guitar", "chords", "bass", "melody", "lead", "pad"):
+    for role in ("rhythm guitar", "electronic drums", "synth bass", "chords", "bass", "melody",
+                 "lead", "pad"):
         if role in name:
             return role.replace(" ", "_")
     return "melody"
@@ -272,15 +304,6 @@ def _attacks_from_track(track: Track) -> List[Attack]:
         lowest[n.start] = min(p, lowest.get(n.start, 128))
     floor = min(lowest.values(), default=0)
     return [Attack(t, 0.5, p <= floor + 7, False) for t, p in sorted(lowest.items())]
-
-
-def _copy(track: Track, name: str, pan: float) -> Track:
-    return Track(
-        notes=[Note(n.pitch, n.duration, n.velocity, n.start, n.articulation, n.drum)
-               for n in track.notes],
-        instrument=track.instrument, is_drum=track.is_drum, name=name,
-        role=track.role, vst=track.vst, pan=pan,
-    )
 
 
 def _humanize(track: Track, profile: GenreProfile, rng: random.Random,

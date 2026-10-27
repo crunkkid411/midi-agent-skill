@@ -11,6 +11,10 @@ responds to:
   melodic: articulation → keyswitch note held across the note (non-latching
            instruments like Odin III) and/or a velocity band (Odin III
            "Swift Mode" picks the articulation from velocity)
+  phrase:  the instrument plays its own grooves; the track becomes held
+           phrase-trigger keys per section (UJAM Beatmaker "Style" keys)
+  all:     abstract automation params (filter, volume, mod_wheel, pitch,
+           macro1-8) → CC numbers / pitch bend via `cc_map`
 
 Maps live in instruments/<slug>.json. Any track can target any map, in any
 genre: profile `instruments[].vst`, or `--vst role=slug` on the CLI.
@@ -27,7 +31,7 @@ INSTRUMENTS_DIR = Path(__file__).parent.parent / "instruments"
 @dataclass
 class InstrumentMap:
     name: str
-    type: str = "melodic"                         # "drums" | "melodic"
+    type: str = "melodic"                         # "drums" | "melodic" | "phrase"
     vendor: Optional[str] = None
     aliases: List[str] = field(default_factory=list)
     lanes: Dict[str, int] = field(default_factory=dict)          # drums: lane → note
@@ -43,6 +47,11 @@ class InstrumentMap:
     default_articulation: Optional[str] = None
     program: Optional[int] = None                 # GM program change, only for GM maps
     channel: Optional[int] = None
+    cc_map: Dict[str, int] = field(default_factory=dict)   # automation param → CC number
+    pitch_bend_range: int = 2                     # semitones the synth is set to
+    legato_overlap: float = 0.0                   # beats glide notes overlap the next (mono glide)
+    phrase_keys: Dict[str, List[int]] = field(default_factory=dict)  # phrase: part → keys
+    part_map: Dict[str, str] = field(default_factory=dict)  # phrase: section name → part
     notes: Optional[str] = None
 
     def drum_note(self, lane: Optional[str], gm_pitch: int) -> int:

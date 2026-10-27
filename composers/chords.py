@@ -7,9 +7,18 @@ triads, extended_7th_9th, power_chords (root-5-8, no 3rd), open_voicings.
 Chords stay in root position (theory.voice_chord) instead of folding each
 tone into the register independently.
 
-Styles: stab (8th-note stabs), sustained (held), sparse_held (held, some
-chords skipped at low density), strum8 (8th strums with accented
-downbeats), pulse4 (quarter-note pulses).
+Styles (instrument `style`, overridable per section via `chords_style`,
+which may also be a {role: style} dict):
+  stab        — 8th-note stabs
+  sustained   — held
+  sparse_held — held, some chords skipped at low density
+  strum8      — 8th strums with accented downbeats
+  pulse4      — quarter-note pulses
+  trance_gate — 16th-note gated chords (instrument articulations.gate, a
+                16-step x/. string; default "x.xxx.xxx.xx.xx.")
+  follow_riff — stabs on the rhythm guitar's accents and low attacks
+                (synths doubling breakdown chugs); needs the riff first in
+                layer_order, falls back to stab otherwise
 """
 
 from typing import List, Optional
@@ -18,7 +27,7 @@ import random
 from midi_types.music import Track, Note, Section
 from midi_types.genre_profile import GenreProfile
 from .theory import voice_chord, parse_key, midi_to_pitch_str, lowest_string
-from .profile import get_instrument, velocity_range
+from .profile import get_instrument, velocity_range, style_for
 from .harmony import ChordSpan
 from .structure import section_density, section_energy, is_muted, is_stop
 
@@ -30,6 +39,7 @@ def generate_chords(
     key: Optional[str] = None,
     rng: Optional[random.Random] = None,
     role: str = "chords",
+    riff_attacks: Optional[list] = None,
 ) -> Track:
     rng = rng or random.Random()
     inst = get_instrument(profile, role)
@@ -39,8 +49,8 @@ def generate_chords(
     tonic_pc, _ = parse_key(key or profile.default_key)
     register = inst.register
     vmin, vmax = velocity_range(profile, role)
-    style = inst.style or ("sustained" if role == "pad" else "sustained")
     low = lowest_string(profile.tuning) if "guitar" in (inst.gm or "") else None
+    gate = str(inst.articulations.get("gate", "x.xxx.xxx.xx.xx."))
 
     notes: List[Note] = []
     stopped = set()
@@ -48,6 +58,7 @@ def generate_chords(
         sec = span.section
         if is_muted(sec, role):
             continue
+        style = style_for(sec, role, inst.style or "sustained")
         voicing = sec.bindings.get("voicing") or inst.voicing or profile.voicing_style
         voiced = voice_chord(span.roman, tonic_pc, span.scale, register, voicing, low_root=low)
         energy = section_energy(profile, sec)
@@ -60,7 +71,25 @@ def generate_chords(
                 _hit(notes, voiced, sec.start_beat(), 1.5, vel)
             continue
 
-        if style == "stab":
+        if style == "follow_riff" and riff_attacks:
+            by_start = {}
+            for a in riff_attacks:
+                if span.start <= a.start < span.end and (a.accent or a.low):
+                    prev = by_start.get(a.start)
+                    if prev is None or (a.accent and not prev.accent):
+                        by_start[a.start] = a
+            hits = [by_start[t] for t in sorted(by_start)]
+            for i, a in enumerate(hits):
+                nxt = hits[i + 1].start if i + 1 < len(hits) else span.end
+                _hit(notes, voiced, a.start, max(0.25, min(a.duration, nxt - a.start)),
+                     vel * (1.0 if a.accent else 0.85))
+        elif style == "trance_gate":
+            step = 4.0 / len(gate)
+            for i in range(int(dur_beats / step)):
+                if gate[i % len(gate)] in "xa":
+                    _hit(notes, voiced, span.start + i * step, step * 0.9,
+                         vel * (1.0 if i % 4 == 0 else 0.88))
+        elif style in ("stab", "follow_riff"):
             for offset in range(int(dur_beats * 2)):  # 8th-note grid
                 if offset % 4 == 0 or rng.random() < 0.4:
                     _hit(notes, voiced, span.start + offset * 0.5, 0.25,

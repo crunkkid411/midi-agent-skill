@@ -32,7 +32,22 @@ def plan_sections(profile: GenreProfile, total_bars: Optional[int],
 
     total_bars=None with use_form=True renders the full form template.
     """
-    rng = rng or random.Random()
+    return _apply_play_in(profile, _plan(profile, total_bars, rng or random.Random(), use_form))
+
+
+def _apply_play_in(profile: GenreProfile, sections: List[Section]) -> List[Section]:
+    """Roles with instruments[].play_in are muted in every other section."""
+    limits = {i.role: set(i.play_in) for i in profile.instruments if i.play_in}
+    for sec in sections:
+        extra = [r for r, allowed in limits.items() if sec.base not in allowed]
+        if extra:
+            mute = list(sec.bindings.get("mute") or [])
+            sec.bindings["mute"] = mute + [r for r in extra if r not in mute]
+    return sections
+
+
+def _plan(profile: GenreProfile, total_bars: Optional[int], rng: random.Random,
+          use_form: bool) -> List[Section]:
     sections = profile.song_sections
     if not sections:
         bars = total_bars or 8
@@ -171,7 +186,7 @@ def _bindings_of(obj) -> Dict[str, Any]:
 
 
 def _merge(parent: Dict[str, Any], child: Dict[str, Any]) -> Dict[str, Any]:
-    out = dict(parent)
+    out = {k: (list(v) if isinstance(v, list) else v) for k, v in parent.items()}
     out.update({k: v for k, v in child.items() if v is not None and v != []})
     return out
 

@@ -92,7 +92,7 @@ def blend_profiles(profiles_with_weights: List[Tuple[GenreProfile, float]]) -> G
                 name=f"{d.name}__{p.name}", kick=d.kick, snare=d.snare,
                 hh=d.hh, oh=d.oh, clap=d.clap, perc=d.perc, lanes=dict(d.lanes),
                 swing=d.swing, ghost_density=d.ghost_density,
-                weight=d.weight * w, kick_follow=d.kick_follow, feel=d.feel,
+                weight=d.weight * w, kick_follow=d.kick_follow, feel=d.feel, layer=d.layer,
             ))
 
     # Instruments: primary's roles, plus any distinctive role from others
@@ -187,9 +187,15 @@ def scale_for(section: Section, default_scale: str) -> str:
 
 
 def style_for(section: Section, role: str, default: Optional[str]) -> Optional[str]:
-    key = {"rhythm_guitar": "riff_style", "bass": "bass_style",
-           "melody": "melody_style", "lead": "melody_style"}.get(role)
-    return section.bindings.get(key) or default if key else default
+    key = {"rhythm_guitar": "riff_style", "bass": "bass_style", "synth_bass": "bass_style",
+           "melody": "melody_style", "lead": "melody_style",
+           "chords": "chords_style", "pad": "chords_style"}.get(role)
+    if not key:
+        return default
+    value = section.bindings.get(key)
+    if isinstance(value, dict):          # {"chords": "follow_riff", "pad": "sustained"}
+        value = value.get(role)
+    return value or default
 
 
 def velocity_range(profile: GenreProfile, role: str) -> Tuple[float, float]:

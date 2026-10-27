@@ -12,7 +12,12 @@ Tracks with `vst` set render through instruments/<vst>.json:
   - melodic: Note.articulation → keyswitch notes (held across the note for
     non-latching instruments such as Odin III) and/or a velocity band
     (Odin III Swift Mode); pitches are folded into the instrument's range.
-No program change is sent to VST tracks. `split_tracks=True` also writes one
+Track automation (filter, volume, expression, mod_wheel, pitch, macro1-8)
+becomes CC / pitch-bend events through the map's cc_map (GM defaults
+otherwise). Glide notes overlap the next note by the map's legato_overlap.
+Phrase maps (UJAM Beatmaker "Style" mode) replace a drum track's notes with
+held song-part keys per section. The composition's tempo_map becomes tempo
+events. No program change is sent to VST tracks. `split_tracks=True` also writes one
 .mid per track (output/<title>/NN-<track>.mid) for dragging into a DAW
 template, one instrument per track.
 """
@@ -39,6 +44,13 @@ DURATION_MAP = {
 }
 
 DEFAULT_VELOCITY = 100  # 0-127 MIDI
+
+# Automation param → CC for tracks without a map (GM / most synths' defaults).
+DEFAULT_CC = {
+    "mod_wheel": 1, "volume": 7, "pan": 10, "expression": 11, "filter": 74, "resonance": 71,
+    "macro1": 21, "macro2": 22, "macro3": 23, "macro4": 24,
+    "macro5": 25, "macro6": 26, "macro7": 27, "macro8": 28,
+}
 
 
 def parse_pitch(pitch_str: str) -> int:
@@ -125,6 +137,8 @@ def _write(composition: Composition, tracks, path: Path, channel_base: int = 0,
            warned: set | None = None) -> None:
     midi = MIDIFile(len(tracks))
     midi.addTempo(0, 0, composition.bpm)
+    for beat, bpm in composition.tempo_map:
+        midi.addTempo(0, beat, bpm)
     warned = warned if warned is not None else set()
     for track_idx, track in enumerate(tracks):
         channel = _assign_channel(track_idx + channel_base, track.is_drum)
@@ -137,8 +151,16 @@ def _write(composition: Composition, tracks, path: Path, channel_base: int = 0,
             midi.addProgramChange(track_idx, channel, 0, program)
         if track.pan is not None:
             midi.addControllerEvent(track_idx, channel, 0, 10, int(round(64 + 63 * track.pan)))
+        _write_automation(midi, track_idx, channel, track, imap, warned)
+
+        if imap is not None and imap.type == "phrase":
+            for pitch, start, end in _phrase_events(composition, track, imap):
+                midi.addNote(track=track_idx, channel=channel, pitch=pitch, time=start,
+                             duration=end - start, volume=100)
+            continue
 
         keyswitch_spans = []
+        pending = []
         cursor = 0.0
         for note in track.notes:
             try:
@@ -169,14 +191,19 @@ def _write(composition: Composition, tracks, path: Path, channel_base: int = 0,
                                       f"'{note.articulation}' — edit instruments/{imap.name}.json",
                                       file=sys.stderr)
 
-                midi.addNote(track=track_idx, channel=channel, pitch=pitch, time=time,
-                             duration=duration, volume=velocity)
+                if note.articulation == "glide" and imap is not None and imap.legato_overlap:
+                    duration += imap.legato_overlap
+                pending.append((pitch, time, duration, velocity))
 
                 # Sequential cursor only advances when start was implicit
                 if note.start is None:
                     cursor += duration
             except Exception as e:
                 print(f"Warning: skipping note {note.pitch} {note.duration}: {e}", file=sys.stderr)
+
+        for pitch, time, duration, velocity in _untangle(pending):
+            midi.addNote(track=track_idx, channel=channel, pitch=pitch, time=time,
+                         duration=duration, volume=velocity)
 
         if imap is not None:
             for ks, start, end in _keyswitch_events(keyswitch_spans, imap.keyswitch_latching):
@@ -185,6 +212,87 @@ def _write(composition: Composition, tracks, path: Path, channel_base: int = 0,
 
     with open(path, 'wb') as f:
         midi.writeFile(f)
+
+
+def _untangle(notes):
+    """Same-pitch notes on one channel can't overlap in MIDI: a later note-on
+    would be cut by the earlier note's note-off (and midiutil can crash on
+    it). Hits closer than a 64th note (duplicates, or humanized flams of the
+    same drum) merge into one, keeping the louder velocity; an overlapped
+    note is shortened to end where the next one starts."""
+    by_pitch: dict = {}
+    for p, t, d, v in notes:
+        by_pitch.setdefault(p, []).append([t, d, v])
+    out = []
+    for p, items in by_pitch.items():
+        items.sort(key=lambda x: (x[0], -x[2]))
+        kept = []
+        for t, d, v in items:
+            if kept and t - kept[-1][0] < 0.0625:
+                kept[-1][1] = max(kept[-1][1], t + d - kept[-1][0])
+                kept[-1][2] = max(kept[-1][2], v)
+                continue
+            if kept and kept[-1][0] + kept[-1][1] > t:
+                kept[-1][1] = t - kept[-1][0]
+            kept.append([t, d, v])
+        out.extend((p, t, d, v) for t, d, v in kept)
+    return sorted(out, key=lambda x: (x[1], x[0]))
+
+
+def _write_automation(midi, track_idx, channel, track: Track, imap, warned: set) -> None:
+    cc_map = dict(DEFAULT_CC)
+    if imap is not None:
+        cc_map.update(imap.cc_map)
+    for ev in track.automation:
+        param, t, v = ev["param"], float(ev["time"]), float(ev["value"])
+        if param == "pitch":
+            if "semitones" in ev:
+                v = float(ev["semitones"]) / (imap.pitch_bend_range if imap else 2)
+            midi.addPitchWheelEvent(track_idx, channel, t, int(max(-8192, min(8191, round(v * 8191)))))
+            continue
+        cc = cc_map.get(param)
+        if cc is None:
+            if (param, track.name) not in warned:
+                warned.add((param, track.name))
+                print(f"Note: no CC for automation '{param}' on {track.name}", file=sys.stderr)
+            continue
+        midi.addControllerEvent(track_idx, channel, t, cc, int(max(0, min(127, round(v * 127)))))
+
+
+def _phrase_events(composition: Composition, track: Track, imap: InstrumentMap):
+    """One held song-part key per top-level section the track plays in.
+    Occurrences cycle through the part's keys (Verse 1, Verse 2, ...); a
+    section with a phrase-end fill gets the next Fill key for its last beat;
+    the final section ends on an End key."""
+    tops = [s for s in composition.sections if not s.is_micro]
+    active = {round(n.start // 4) for n in track.notes if n.start is not None}
+    counts: dict = {}
+    out = []
+    for i, sec in enumerate(tops):
+        bars = range(sec.start_bar - 1, sec.end_bar)
+        start, end = sec.start_beat(), sec.end_beat()
+        if not any(b in active for b in bars) or (track.role or "drums") in (sec.bindings.get("mute") or []):
+            continue
+        part = imap.part_map.get(sec.base, sec.base)
+        if sec.bindings.get("stop"):
+            part = "off"
+        keys = imap.phrase_keys.get(part) or imap.phrase_keys.get("verse") or []
+        if not keys:
+            continue
+        n = counts.get(part, 0)
+        counts[part] = n + 1
+        key = keys[n % len(keys)]
+        last = i == len(tops) - 1
+        fill_keys = imap.phrase_keys.get("fill") or []
+        end_keys = imap.phrase_keys.get("end") or []
+        tail = 1.0 if (fill_keys or (last and end_keys)) and sec.bars() >= 2 and part != "off" else 0.0
+        out.append((key, start, end - tail))
+        if tail:
+            if last and end_keys:
+                out.append((end_keys[0], end - tail, end))
+            elif sec.bindings.get("fill") is not False:
+                out.append((fill_keys[counts[part] % len(fill_keys)], end - tail, end))
+    return out
 
 
 def _map_for(track: Track, warned: set) -> InstrumentMap | None:

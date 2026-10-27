@@ -41,6 +41,10 @@ class Track:
     role: Optional[str] = None          # pipeline role: "drums", "rhythm_guitar", "bass", ...
     vst: Optional[str] = None           # instrument map slug from instruments/ (None → General MIDI)
     pan: Optional[float] = None         # -1.0 (left) .. 1.0 (right)
+    # Controller automation: [{"param": "filter", "time": beats, "value": 0..1}, ...]
+    # Params are abstract (filter, volume, expression, mod_wheel, pitch, macro1-8);
+    # the track's instrument map turns them into CC numbers / pitch bend.
+    automation: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -80,6 +84,7 @@ class Composition:
     sections: List[Section] = field(default_factory=list)
     key: Optional[str] = None           # e.g. "D Dorian", "C minor"
     tuning: Optional[str] = None        # e.g. "drop_c" — informs riff/bass pedal notes
+    tempo_map: List[Tuple[float, float]] = field(default_factory=list)  # [(beat, bpm)] after beat 0
 
     def to_dict(self) -> Dict[str, Any]:
         out: Dict[str, Any] = {
@@ -90,7 +95,8 @@ class Composition:
                     "name": t.name,
                     "instrument": t.instrument,
                     "is_drum": t.is_drum,
-                    **{k: v for k, v in {"role": t.role, "vst": t.vst, "pan": t.pan}.items()
+                    **{k: v for k, v in {"role": t.role, "vst": t.vst, "pan": t.pan,
+                                         "automation": t.automation or None}.items()
                        if v is not None},
                     "notes": [
                         {k: v for k, v in {
@@ -123,6 +129,8 @@ class Composition:
             out["key"] = self.key
         if self.tuning is not None:
             out["tuning"] = self.tuning
+        if self.tempo_map:
+            out["tempo_map"] = [list(t) for t in self.tempo_map]
         return out
 
     @classmethod
@@ -149,6 +157,7 @@ class Composition:
                 role=t.get("role"),
                 vst=t.get("vst"),
                 pan=t.get("pan"),
+                automation=t.get("automation", []),
             ))
 
         sections = [
@@ -170,4 +179,5 @@ class Composition:
             sections=sections,
             key=data.get("key"),
             tuning=data.get("tuning"),
+            tempo_map=[tuple(t) for t in data.get("tempo_map", [])],
         )
