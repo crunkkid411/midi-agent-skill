@@ -167,6 +167,17 @@ Bass:       Electric Bass
 Rhythm:     Drums
 ```
 
+### Metalcore
+```
+Melody:     Lead Guitar (overdriven-guitar, octave above rhythm)
+Harmony:    Rhythm Guitar (distortion-guitar, power chords + palm-muted pedal)
+Ambience:   Clean/ambient guitar or pad-2-warm (breakdowns, intros)
+Bass:       electric-bass-pick (doubles rhythm guitar roots)
+Rhythm:     Drums (double bass, china cymbals, half-time breakdowns)
+```
+**Tuning**: Drop C / Drop B / Drop A — rhythm guitar root between F1 and D2 (MIDI 29-38).
+**Song form**: Intro - Verse - Pre-Chorus - Chorus - Verse - Chorus - Breakdown - Chorus - Outro.
+
 ### Pop/Electronic
 ```
 Melody:     Synth Lead / Vocal

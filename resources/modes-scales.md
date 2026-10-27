@@ -192,6 +192,7 @@ C C# D D# E F F# G G# A A# B C
 | Blues | Mixolydian, Minor Pentatonic |
 | Rock | Aeolian, Dorian, Mixolydian |
 | Metal | Phrygian, Aeolian, Locrian |
+| Metalcore | Aeolian, Phrygian, Harmonic Minor (melodic leads) |
 | Classical | Ionian, Aeolian, Harmonic Minor |
 | Folk | Dorian, Mixolydian, Ionian |
 | Electronic | Lydian, Phrygian, Whole Tone |

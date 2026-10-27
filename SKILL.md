@@ -46,6 +46,7 @@ Generate MIDI files with proper music theory. **Use the provided Python scripts 
 - **Classical piece** → counterpoint.md + orchestration.md
 - **Jazz composition** → modes-scales.md + chord-progressions.md
 - **Film score** → orchestration.md + modes-scales.md
+- **Metalcore** → rhythm-patterns.md + chord-progressions.md + orchestration.md (power chords and Phrygian ♭2 are intentional here; the semitone rule applies to sustained chords, not riffs)
 - **Any composition** → Always check voice-leading.md for dissonance
 
 ---

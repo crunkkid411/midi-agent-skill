@@ -65,7 +65,21 @@ i - VII - VI - VII   (Epic/Cinematic)
 I - V - vi - iii     (Uplifting trance)
 ```
 
-### Sad / Melancholic
+### Metalcore
+Riffs are built from a low open-string **pedal tone** (the "0") that the
+progression returns to. Numbers are scale degrees in natural minor / Phrygian.
+```
+i - i - ♭VI - ♭VII       (Verse: pedal on i, move on bars 3-4)
+i - i - ♭VI - v          (Verse / chorus, darker)
+i - ♭VI - ♭III - ♭VII    (Melodic chorus, the "epic" minor loop)
+♭VI - ♭VII - i - i       (Chorus lift into the tonic)
+i - ♭II - i - ♭II        (Breakdown / Phrygian tension)
+```
+**Use for**: Metalcore verses, choruses, breakdowns
+**Voicing**: Power chords (root + 5th + octave), never full triads in the rhythm guitar.
+Choruses open up to sustained power chords; verses stay on palm-muted pedal tones.
+
+
 ```
 i - VI - III - VII   (Minor epic)
 i - iv - V - i       (Minor cadence)
@@ -116,6 +130,14 @@ Alternate between root and fifth.
 ```
 Chord: C
 Bass:  C2 - G2 - C2 - G2
+```
+
+### Metalcore Bass (Lock to the Guitar)
+Double the rhythm guitar's root notes at the same pitch (high riff notes drop an octave),
+in the exact same rhythm. Drop out on guitar rests.
+```
+Guitar: B1 B1 B1 D3 B1 B1 C3 B1   (8ths, drop-B pedal riff)
+Bass:   B1 B1 B1 D2 B1 B1 C2 B1
 ```
 
 ### Walking Bass (Jazz)
