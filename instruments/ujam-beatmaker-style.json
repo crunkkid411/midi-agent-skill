@@ -1,0 +1,24 @@
+{
+  "name": "ujam-beatmaker-style",
+  "type": "phrase",
+  "vendor": "UJAM",
+  "aliases": ["beatmaker-style", "ujam-style"],
+  "notes": "UJAM Beatmaker in Style mode: Beatmaker plays its own phrases and the track becomes held song-part keys, one per section (Latch OFF — a phrase plays while its key is held). Key layout from the Beatmaker 2.1 User Guide, 'Keyboard Layout: Style' (MIDI 60 = C3 in UJAM's naming): Verse 1-5 = 60, 62, 64, 65, 67; Intro 1-2 = 61, 63; Fill 1-3 = 66, 68, 70; Chorus 1-5 = 69, 71, 72, 74, 76; End 1-2 = 73, 75; Special 1-3 = 77, 79, 81; Breakdown 1-3 = 78, 80, 82; Off = 83. Repeated sections step through the numbered variations (verse2 → Verse 2); sections with fills get a Fill key on their last beat; the song ends on End 1. Layouts vary slightly between titles. Pick the Style in the plugin; its BPM hint is only a suggestion.",
+  "phrase_keys": {
+    "verse": [60, 62, 64, 65, 67],
+    "intro": [61, 63],
+    "fill": [66, 68, 70],
+    "chorus": [69, 71, 72, 74, 76],
+    "end": [73, 75],
+    "special": [77, 79, 81],
+    "breakdown": [78, 80, 82],
+    "off": [83]
+  },
+  "part_map": {
+    "loop": "verse", "pre-chorus": "verse", "post-chorus": "chorus", "drop": "chorus",
+    "build": "special", "bridge": "special", "solo": "special", "interlude": "special",
+    "dance-break": "special", "break": "breakdown", "pre-breakdown": "special",
+    "outro": "end", "stop": "off"
+  },
+  "cc_map": { "mod_wheel": 1 }
+}

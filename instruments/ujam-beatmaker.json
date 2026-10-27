@@ -1,0 +1,21 @@
+{
+  "name": "ujam-beatmaker",
+  "type": "drums",
+  "vendor": "UJAM",
+  "aliases": ["beatmaker", "ujam", "bm-eden", "bm-hustle", "bm-dope", "bm-void", "bm-nemesis", "bm-glory", "bm-vegas"],
+  "notes": "UJAM Beatmaker (any title: EDEN, HUSTLE, DOPE, VOID, NEMESIS, GLORY, ...) in Instrument mode: the pipeline's drum notes play the kit directly. Key layout from the Beatmaker 2.1 User Guide, 'Keyboard Layout: Instrument': C1-D#2 (MIDI 36-51) = BD1 36, BD2 37, Snare1 38, Clap 39, Snare2 40, Tom1 41, HH1 42, Tom2 43, HH2 44, Tom3 45, HH3 46, fx1 47, fx2 48, Cymbals1 49, Cymbals2 50, HH4 51. The manual notes layouts vary slightly between titles in the upper range, and the kit is not GM (each title's sounds differ from acoustic drums: HH1 closed, HH3 most open is typical, check the key labels in the plugin). Latch is irrelevant here (no phrase keys are sent). Pitch bend mutes kick/snare and the mod wheel drives crescendos inside Beatmaker; the pipeline sends neither unless a section binds automation (param 'pitch' / 'mod_wheel'). To let Beatmaker play its own grooves instead, use the 'ujam-beatmaker-style' map.",
+  "lanes": {
+    "kick": 36, "kick_2": 37, "snare": 38, "clap": 39, "snare_2": 40,
+    "tom_high": 41, "hh": 42, "tom_mid": 43, "hh_tight": 44, "tom_low": 45,
+    "oh": 46, "fx_1": 47, "fx_2": 48, "crash": 49, "crash_2": 50, "hh_alt": 51
+  },
+  "fallbacks": {
+    "snare_rimshot": "snare_2", "snare_sidestick": "snare_2", "snare_ghost": "snare",
+    "hh_pedal": "hh_tight", "oh_half": "oh", "oh_loose": "oh",
+    "ride": "crash_2", "ride_bell": "hh_alt", "ride_edge": "crash_2",
+    "china": "crash_2", "china_2": "crash_2", "spock": "crash", "splash": "crash", "crash_choke": "crash",
+    "floor_tom": "tom_low", "floor_tom_low": "tom_low",
+    "cowbell": "fx_1", "perc": "fx_1", "tambourine": "hh_alt", "shaker": "hh_alt", "rim": "snare_2"
+  },
+  "cc_map": { "mod_wheel": 1 }
+}

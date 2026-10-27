@@ -3,16 +3,30 @@
   "type": "melodic",
   "vendor": "Vendor name",
   "aliases": [],
-  "range": [28, 96],
+  "range": [
+    28,
+    96
+  ],
   "octave_offset": 0,
   "articulation_mode": "keyswitch+velocity",
   "default_articulation": "open",
   "velocity_bands": {},
-  "keyswitches": {"palm_mute": null, "open": null},
+  "keyswitches": {
+    "palm_mute": null,
+    "open": null
+  },
   "articulation_aliases": {},
   "keyswitch_latching": false,
   "keyswitch_lead": 0.03,
   "lanes": {},
   "fallbacks": {},
-  "notes": "Copy this file to instruments/<slug>.json. Drums: type 'drums', fill 'lanes' (lane name -> MIDI note) and 'fallbacks'. Melodic: set range, articulation_mode (none | velocity | keyswitch | keyswitch+velocity), keyswitch notes and/or velocity bands. latching=true means one keyswitch note at each articulation change; false means the keyswitch is held for every note it applies to."
+  "notes": "Copy this file to instruments/<slug>.json. Drums: type 'drums', fill 'lanes' (lane name -> MIDI note) and 'fallbacks'. Melodic: set range, articulation_mode (none | velocity | keyswitch | keyswitch+velocity), keyswitch notes and/or velocity bands. latching=true means one keyswitch note at each articulation change; false means the keyswitch is held for every note it applies to. Synths: cc_map (automation param -> CC), pitch_bend_range, legato_overlap (beats glide notes overlap). Groove players (type 'phrase'): phrase_keys {part: [keys]} and part_map {section name: part}.",
+  "cc_map": {
+    "filter": 74,
+    "volume": 7
+  },
+  "pitch_bend_range": 2,
+  "legato_overlap": 0.0,
+  "phrase_keys": {},
+  "part_map": {}
 }

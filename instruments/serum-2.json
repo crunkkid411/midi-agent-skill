@@ -1,0 +1,32 @@
+{
+  "name": "serum-2",
+  "type": "melodic",
+  "vendor": "Xfer Records",
+  "aliases": [
+    "serum",
+    "serum2",
+    "xfer-serum-2"
+  ],
+  "range": [
+    0,
+    127
+  ],
+  "articulation_mode": "none",
+  "legato_overlap": 0.06,
+  "pitch_bend_range": 2,
+  "cc_map": {
+    "mod_wheel": 1,
+    "volume": 7,
+    "expression": 11,
+    "filter": 74,
+    "macro1": 21,
+    "macro2": 22,
+    "macro3": 23,
+    "macro4": 24,
+    "macro5": 25,
+    "macro6": 26,
+    "macro7": 27,
+    "macro8": 28
+  },
+  "notes": "Xfer Serum 2 wavetable synth. Out of the box Serum responds only to the mod wheel (CC1) \u2014 Xfer: no default CC assignments besides CC1. Everything else is MIDI Learn: right-click a knob (filter cutoff, a macro, the LFO rate) > MIDI Learn, then send the CC this map uses (filter 74, volume 7, expression 11, macro1-8 = CC21-28). Save the assignments as your default MIDI map (default.mmp) so they survive preset changes; per-preset maps load only if 'Load MIDI Map from Preset' is enabled (off by default). Sidechain pumping: map 'volume'/'expression' or use Serum's own LFO. Glides: set the voice to Mono/Legato with portamento \u2014 notes marked 'glide' overlap the next by legato_overlap beats. Pitch automation assumes the default \u00b12 semitone bend range; set pitch_bend_range here if you change it (dives use the full bend). For a full tape-stop dive (12 semitones) set Serum's bend range to 12 and pitch_bend_range here to 12; at \u00b12 the dive is clamped to a whole-tone drop."
+}

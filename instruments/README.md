@@ -14,6 +14,8 @@ At render time `skills/generate_midi.py` applies the track's map:
 |---|---|
 | drums | lane → kit note (`lanes`), missing piece → another lane (`fallbacks`) |
 | melodic | articulation → keyswitch note and/or velocity band; pitch folded into `range` (+ `octave_offset`) |
+| phrase | the instrument plays its own grooves; the track becomes held song-part keys per section (`phrase_keys`, `part_map`) |
+| all | automation params → CC numbers (`cc_map`), pitch lanes → pitch bend (`pitch_bend_range`); glide notes overlap by `legato_overlap` |
 
 `articulation_mode`:
 - `none`: notes only
@@ -61,12 +63,56 @@ Kontakt). It goes down to double drop C (MIDI 24).
 - Double-tracked parts come out as `Rhythm Guitar L` and `Rhythm Guitar R`. Use the dual panned preset or two instances.
 - If notes land an octave off from your tab/DAW convention, set `octave_offset` to ±12 (or use Odin's Octave Drop button).
 
+### ujam-beatmaker (aliases: beatmaker, bm-eden, bm-hustle, bm-dope, …)
+UJAM Beatmaker, any title, in **Instrument mode**: the pipeline's drum notes
+play the kit. The keys come from the Beatmaker 2.1 manual (C1–D#2):
+- BD1 36, BD2 37
+- Snare1 38, Clap 39, Snare2 40
+- toms 41 / 43 / 45
+- hats HH1 42, HH2 44, HH3 46, HH4 51
+- fx 47 / 48
+- cymbals 49 / 50
+
+It isn't General MIDI, so china, ride and splash fall back to the Cymbals
+keys. Layouts vary slightly between titles, so check the key labels in the
+plugin.
+
+### ujam-beatmaker-style (aliases: beatmaker-style)
+Beatmaker in **Style mode**. Beatmaker plays its own phrases, and the track
+becomes one held song-part key per section. Turn Latch off. The keys:
+- Verse 1–5: 60 62 64 65 67
+- Intro: 61 63
+- Fill: 66 68 70
+- Chorus 1–5: 69 71 72 74 76
+- End: 73 75
+- Special: 77 79 81
+- Breakdown: 78 80 82
+- Off: 83
+
+Repeated sections step through the numbered variations. A section with a fill
+gets a Fill key on its last beat, and the song ends on End 1. Dance breaks and
+builds map to Special.
+
+### serum-2 (aliases: serum) and vital
+Wavetable synths with no articulations, driven by notes, CCs and pitch bend.
+Out of the box Serum responds only to the mod wheel. In both synths, MIDI
+Learn the controls this map uses:
+- filter cutoff ← CC74
+- volume ← CC7
+- expression ← CC11
+- macros ← CC21–28 (Vital has 4)
+
+Serum: save the assignments as the default MIDI map, because per-preset maps
+load only when enabled. Vital: MIDI Learn is global. For glides, set Mono or
+Legato with portamento. For full 12-semitone tape-stop dives, set the synth's
+bend range to 12 and `pitch_bend_range` to 12.
+
 ### gm-drums (aliases: gm)
 General MIDI percussion, the implicit default for drum tracks with no VST.
 
 ## Adding a VST
 
 1. Copy `_template.json` to `<slug>.json`.
-2. Drums: fill `lanes` (lane → note) and `fallbacks`. Melodic: set `range`, `articulation_mode`, `keyswitches` and/or `velocity_bands`, and `keyswitch_latching`.
+2. Drums: fill `lanes` (lane → note) and `fallbacks`. Melodic: set `range`, `articulation_mode`, `keyswitches` and/or `velocity_bands`, and `keyswitch_latching`. Synths: `cc_map`, `pitch_bend_range`, `legato_overlap`. Groove players: `type: "phrase"` with `phrase_keys` and `part_map`.
 3. Research the instrument (manual, keyswitch chart, MIDI map), cite it in `notes`, and mark anything you couldn't verify.
 4. Point a profile role at it (`"vst": "<slug>"`) or pass `--vst role=<slug>`.
