@@ -181,6 +181,34 @@ Snare:   .       X       .       X
 BPM: 85-115
 ```
 
+### Metalcore
+Section-driven: the drum pattern changes per section, not per song.
+```
+Verse (8th-note kick + backbeat, "chug" feel)
+Beat:    1 e + a 2 e + a 3 e + a 4 e + a
+Kick:    X . X . X . X . X . X . X . X .
+Snare:   . . . . X . . . . . . . X . . .
+China:   X . . . X . . . X . . . X . . .
+
+Double bass (verse / chorus intensity)
+Kick:    X X X X X X X X X X X X X X X X
+Snare:   . . . . X . . . . . . . X . . .
+Ride:    X . X . X . X . X . X . X . X .
+
+Breakdown (half-time: snare on beat 3, kick follows the guitar chugs)
+Beat:    1 e + a 2 e + a 3 e + a 4 e + a
+Kick:    X . . X . . X . . . X . X X . .
+Snare:   . . . . . . . . X . . . . . . .
+China:   X . . . X . . . X . . . X . . .
+Guitar:  X . . X . . X . . . X . X X . .   (kick = guitar rhythm)
+```
+**Key rules**:
+- In breakdowns the kick drum doubles the guitar chug rhythm exactly
+- Crash/china on beat 1 of every new section or 4-bar phrase
+- End 4-bar phrases with a 1-beat or 1-bar tom/snare fill
+- Use rests: silence between chugs is what makes breakdowns hit
+BPM: 120-180 (breakdowns feel half-time at the same tempo)
+
 ---
 
 ## Note Duration Reference
@@ -237,5 +265,6 @@ BPM: 85-115
 | Hip Hop | 85-115 |
 | Pop | 100-130 |
 | Rock | 110-140 |
+| Metalcore | 120-180 (breakdowns half-time) |
 | Dance/EDM | 120-140 |
 | Drum & Bass | 160-180 |
