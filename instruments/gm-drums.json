@@ -1,0 +1,16 @@
+{
+  "name": "gm-drums",
+  "type": "drums",
+  "vendor": "General MIDI",
+  "aliases": ["gm", "general-midi-drums"],
+  "notes": "General MIDI percussion map (channel 10). Default for drum tracks with no VST; works with any GM SoundFont (e.g. A320U.sf2).",
+  "lanes": {
+    "kick": 36, "kick_left": 35, "snare": 38, "snare_ghost": 38, "snare_rimshot": 40,
+    "snare_sidestick": 37, "clap": 39, "hh": 42, "hh_tight": 42, "hh_pedal": 44,
+    "oh": 46, "oh_half": 46, "oh_loose": 46, "crash": 49, "crash_2": 57, "crash_choke": 49,
+    "china": 52, "splash": 55, "ride": 51, "ride_bell": 53, "ride_edge": 59,
+    "tom_high": 50, "tom_mid": 47, "tom_low": 45, "floor_tom": 43, "floor_tom_low": 41,
+    "cowbell": 56, "tambourine": 54, "shaker": 70
+  },
+  "fallbacks": {"perc": "cowbell", "rim": "snare_sidestick", "spock": "splash", "china_2": "china", "crash_3": "crash"}
+}

@@ -1,0 +1,43 @@
+{
+  "name": "odin-iii",
+  "type": "melodic",
+  "vendor": "Solemn Tones",
+  "aliases": ["odin3", "odin-3", "the-odin-iii", "solemn-tones-odin-iii"],
+  "range": [24, 88],
+  "octave_offset": 0,
+  "articulation_mode": "keyswitch+velocity",
+  "default_articulation": "open",
+  "velocity_bands": {
+    "dead":           [1, 30],
+    "palm_mute":      [45, 78],
+    "palm_mute_tight":[31, 50],
+    "open":           [82, 112],
+    "pinch_harmonic": [116, 127]
+  },
+  "keyswitches": {
+    "alt_pick": null,
+    "down_pick": null,
+    "up_pick": null,
+    "palm_mute": null,
+    "palm_mute_tight": null,
+    "palm_mute_down": null,
+    "palm_mute_open": null,
+    "slide": null,
+    "hammer_on": null,
+    "pull_off": null,
+    "bend": null,
+    "scrape": null,
+    "pinch_harmonic": null,
+    "natural_harmonic": null,
+    "finger_pluck": null,
+    "slap": null,
+    "tapping": null
+  },
+  "articulation_aliases": {
+    "open": "alt_pick",
+    "dead": "scrape"
+  },
+  "keyswitch_latching": false,
+  "keyswitch_lead": 0.03,
+  "notes": "Solemn Tones Odin III — standalone VST3/AU/AAX (no Kontakt), ESP LTD SC-608 8-string baritone, Evertune. Sampled to drop F, pitched down to double drop C (C1 = MIDI 24); every fret on every string. 31 articulations: down/up/alternate picking, multiple palm-mute types (product page says four, early reviews three) incl. down-picked mutes, slides, hammer-ons, pull-offs, bends, scrapes, pinch + natural harmonics, finger plucks, slaps, tapping. Tones: Clean DI / Amped Rhythm / Amped Lead / Amped Clean (5150-style amp; DI for re-amping). HOW THIS MAP DRIVES IT: (1) Swift Mode picks articulations from velocity — low = chugs/scrapes, mid-low = tight palm mutes, mid-high = alternate picking, high = pinch harmonics — so 'velocity_bands' work with no keyswitch setup. The band edges are estimates: play a held low note at different velocities in Swift Mode and adjust. (2) Keyswitches are NON-LATCHING in Odin III: the renderer holds the keyswitch for the whole length of each note it affects (keyswitch_latching=false). Exact keyswitch notes are not published outside the plugin: open the keyswitch list (top-right toggle of the Odin III UI) and fill in the null entries (they sit at the bottom of the keyboard, roughly C0-D#1). Any articulation with a known keyswitch uses it; the rest fall back to velocity bands. (3) String select defaults to Auto; leave it on Auto for generated parts. (4) If everything sounds an octave off relative to your tab/DAW convention, set octave_offset to 12 or -12 (Odin's 'Octave Drop' button does the same inside the plugin). (5) Set the plugin's tuning (Advanced page) to the profile's tuning, e.g. drop C. (6) Double-tracked parts are written as 'Rhythm Guitar L' and 'Rhythm Guitar R': use the dual panned-guitar preset or two instances hard-panned. Turn Force Vibrato off for rhythm parts; Auto Chord Delay low for power chords."
+}
