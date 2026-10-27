@@ -94,9 +94,9 @@ def generate_drums(
             idx = (bar - leaf.start_bar) // phrase
             pattern = patterns[idx % len(patterns)]
             kick_follow = follow if follow is not None else pattern.kick_follow
-            _emit_bar(pattern, bar, density, lo, hi, rng, notes,
+            _emit_bar(pattern, leaf.bar_start(bar), leaf.beats_per_bar, density, lo, hi, rng, notes,
                       riff_attacks if kick_follow else None)
-            downbeat = (bar - 1) * 4
+            downbeat = leaf.bar_start(bar)
             crash_flag = leaf.bindings.get("crash")
             leaf_downbeat = bar == leaf.start_bar and crash_flag is not False and \
                 (bar == top.start_bar or crash_flag is True)
@@ -155,28 +155,35 @@ def _crash(notes: List[Note], t: float, vel: float) -> None:
         notes.append(_note("kick", t, vel))
 
 
-def _emit_bar(pattern: DrumPattern, bar: int, density: float,
+def _emit_bar(pattern: DrumPattern, bar_start_beat: float, bar_beats: float, density: float,
               vmin: float, vmax: float, rng: random.Random,
               notes_out: List[Note], riff_attacks: Optional[list]) -> None:
-    """Expand a single bar of the pattern's grids."""
-    bar_start_beat = (bar - 1) * 4
+    """Expand a single bar of the pattern's grids.
+
+    A grid spans 4 beats unless the pattern declares a `meter` ("3/4" → 3).
+    In a shorter bar the grid is cut off at the barline; in a longer bar
+    (5/4, 7/4) it wraps around."""
+    from .structure import meter_beats
+    grid_beats = meter_beats(pattern.meter) if pattern.meter else 4.0
 
     for lane, grid in pattern.all_lanes().items():
         if lane == "kick" and riff_attacks is not None:
-            _follow_kick(riff_attacks, bar_start_beat, vmin, vmax, rng, notes_out)
+            _follow_kick(riff_attacks, bar_start_beat, bar_beats, vmin, vmax, rng, notes_out)
             continue
-        steps = len(grid)
-        beats_per_step = 4.0 / steps
+        steps_per_beat = len(grid) / grid_beats
+        beats_per_step = 1.0 / steps_per_beat
+        steps = int(round(bar_beats * steps_per_beat))
         half_skip = density < LANE_DENSITY_THRESHOLD.get(lane, 0.0)
 
-        for i, ch in enumerate(grid):
+        for i in range(steps):
+            ch = grid[i % len(grid)]
             if ch in (".", " "):
                 continue
             if half_skip and i % 2 == 1:
                 continue
 
             offset = i * beats_per_step
-            if pattern.swing > 0.5 and i % 2 == 1 and steps in (8, 16, 32):
+            if pattern.swing > 0.5 and i % 2 == 1 and len(grid) in (8, 16, 32):
                 offset += beats_per_step * (pattern.swing - 0.5) * 2 * 0.5
 
             if ch == "g":
@@ -190,15 +197,15 @@ def _emit_bar(pattern: DrumPattern, bar: int, density: float,
         # Ghost-note injection
         if pattern.ghost_density > 0 and lane in ("snare", "hh") and density >= 0.5:
             for i in range(steps):
-                if grid[i] in (".", " ") and rng.random() < pattern.ghost_density / 4:
+                if grid[i % len(grid)] in (".", " ") and rng.random() < pattern.ghost_density / 4:
                     notes_out.append(_note(lane, bar_start_beat + i * beats_per_step,
                                            rng.uniform(vmin, vmin + (vmax - vmin) * 0.25)))
 
 
-def _follow_kick(attacks, bar_start, vmin, vmax, rng, out) -> None:
+def _follow_kick(attacks, bar_start, bar_beats, vmin, vmax, rng, out) -> None:
     seen = set()
     for a in attacks:
-        if bar_start <= a.start < bar_start + 4 and a.low and a.start not in seen:
+        if bar_start <= a.start < bar_start + bar_beats and a.low and a.start not in seen:
             seen.add(a.start)
             vel = rng.uniform(vmin + (vmax - vmin) * 0.6, vmax) * (1.05 if a.accent else 1.0)
             out.append(_note("kick", a.start, vel))
@@ -225,8 +232,9 @@ def _place_fills(profile, leaf, top, phrase, density, energy, lo, hi, rng, notes
         beats = rng.choice(cfg.beats)
         if section_end and len(cfg.beats) > 1:
             beats = max(cfg.beats)
+        beats = min(beats, leaf.beats_per_bar)
         kind = rng.choice(cfg.types)
-        end = bar * 4
+        end = leaf.bar_start(bar) + leaf.beats_per_bar
         start = end - beats
         notes[:] = [n for n in notes if not (start - 1e-6 <= n.start < end and n.drum != "crash")]
         FILLS.get(kind, _fill_snare_roll)(start, end, lo, hi, rng, notes, energy)

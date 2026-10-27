@@ -54,9 +54,16 @@ class Section:
     end_bar: int                        # 1-indexed inclusive
     density: Optional[float] = None     # resolved from the profile by the structure planner
     bindings: Dict[str, Any] = field(default_factory=dict)  # resolved SectionBindings (energy, drum_pattern, ...)
+    beats_per_bar: float = 4.0          # quarter-note beats per bar (3/4 → 3, 6/8 → 3, 7/8 → 3.5)
+    beat_offset: Optional[float] = None # absolute start in beats (set by the planner; meters vary)
+    beat_length: Optional[float] = None # total beats when micro-sections mix meters
 
     def bars(self) -> int:
         return self.end_bar - self.start_bar + 1
+
+    def bar_start(self, bar: int) -> float:
+        """Absolute beat where `bar` (1-indexed song bar inside this section) starts."""
+        return self.start_beat() + (bar - self.start_bar) * self.beats_per_bar
 
     @property
     def is_micro(self) -> bool:
@@ -67,11 +74,15 @@ class Section:
         """'verse2.B' → 'verse'"""
         return self.name.partition(".")[0].rstrip("0123456789") or self.name
 
-    def start_beat(self, beats_per_bar: int = 4) -> float:
-        return (self.start_bar - 1) * beats_per_bar
+    def start_beat(self, beats_per_bar: Optional[float] = None) -> float:
+        if self.beat_offset is not None:
+            return self.beat_offset
+        return (self.start_bar - 1) * (beats_per_bar or self.beats_per_bar)
 
-    def end_beat(self, beats_per_bar: int = 4) -> float:
-        return self.end_bar * beats_per_bar
+    def end_beat(self, beats_per_bar: Optional[float] = None) -> float:
+        if self.beat_length is not None:
+            return self.start_beat() + self.beat_length
+        return self.start_beat(beats_per_bar) + self.bars() * (beats_per_bar or self.beats_per_bar)
 
 
 @dataclass
@@ -122,6 +133,8 @@ class Composition:
                 {k: v for k, v in {
                     "name": s.name, "start_bar": s.start_bar, "end_bar": s.end_bar,
                     "density": s.density, "bindings": s.bindings or None,
+                    "beats_per_bar": s.beats_per_bar if s.beats_per_bar != 4.0 else None,
+                    "beat_offset": s.beat_offset, "beat_length": s.beat_length,
                 }.items() if v is not None}
                 for s in self.sections
             ]
@@ -162,7 +175,9 @@ class Composition:
 
         sections = [
             Section(name=s["name"], start_bar=int(s["start_bar"]), end_bar=int(s["end_bar"]),
-                    density=s.get("density"), bindings=s.get("bindings", {}))
+                    density=s.get("density"), bindings=s.get("bindings", {}),
+                    beats_per_bar=float(s.get("beats_per_bar", 4.0)),
+                    beat_offset=s.get("beat_offset"), beat_length=s.get("beat_length"))
             for s in data.get("sections", [])
         ]
 

@@ -40,6 +40,8 @@ from .melody import generate_melody
 from .automation import apply_automation
 from .doubling import make_takes
 from .profile import get_instrument
+from .structure import leaf_sections
+from midi_types.genre_profile import DoubleTrack
 
 
 DEFAULT_LAYER_ORDER = ["chords", "pad", "rhythm_guitar", "drums", "electronic_drums",
@@ -154,15 +156,16 @@ def compose(
         if role in overrides:
             tracks.append(track)
             continue
-        if inst is not None and inst.double_track:
-            takes = make_takes(track, inst.double_track, sections, timeline, chosen_key,
-                               inst.register, stream(f"takes:{role}"))
-            for take in takes:
-                side = take.name.rsplit(" ", 1)[-1]
-                tracks.append(_humanize(take, profile, stream(f"humanize:{role}:{side}"),
-                                        minimum=(0.012, 0.05)))
-        else:
-            tracks.append(_humanize(track, profile, stream(f"humanize:{role}")))
+        for part, dt in _split_tones(track, inst, sections):
+            if dt:
+                takes = make_takes(part, dt, sections, timeline, chosen_key,
+                                   inst.register, stream(f"takes:{part.name}"))
+                for take in takes:
+                    side = take.name.rsplit(" ", 1)[-1]
+                    tracks.append(_humanize(take, profile, stream(f"humanize:{part.name}:{side}"),
+                                            minimum=(0.012, 0.05)))
+            else:
+                tracks.append(_humanize(part, profile, stream(f"humanize:{part.name}")))
 
     total_bars = max((s.end_bar for s in sections), default=bars or 0)
     return Composition(
@@ -175,6 +178,44 @@ def compose(
         tuning=_tuning_name(profile.tuning),
         tempo_map=tempo_map(sections, chosen_bpm),
     )
+
+
+def _split_tones(track: Track, inst, sections: List[Section]):
+    """Move notes from sections with a `tone` binding (e.g. {"rhythm_guitar": "clean"})
+    onto that tone's own track — a clean intro is a different patch or instrument,
+    not the distorted guitar playing softly. A tone track uses only the vst its
+    tone names (none → General MIDI). Returns [(track, DoubleTrack|None)]."""
+    dt = inst.double_track if inst is not None else None
+    if inst is None or not inst.tones:
+        return [(track, dt)]
+    leaves = leaf_sections(sections)
+
+    def tone_at(beat):
+        for sec in leaves:
+            if sec.start_beat() - 1e-6 <= beat < sec.end_beat() - 1e-6:
+                t = sec.bindings.get("tone")
+                t = t.get(track.role) if isinstance(t, dict) else t
+                return t if t in inst.tones else None
+        return None
+
+    parts = {None: []}
+    for n in track.notes:
+        parts.setdefault(tone_at(n.start) if n.start is not None else None, []).append(n)
+    out = []
+    for tone, notes in parts.items():
+        if tone is None:
+            main = Track(notes=notes, instrument=track.instrument, is_drum=track.is_drum,
+                         name=track.name, role=track.role, vst=track.vst, pan=track.pan,
+                         automation=[e for e in track.automation if tone_at(e["time"]) is None])
+            out.append((main, dt))
+            continue
+        cfg = inst.tones[tone]
+        part = Track(notes=notes, instrument=cfg.get("gm", track.instrument), is_drum=track.is_drum,
+                     name=f"{track.name} ({tone})", role=track.role,
+                     vst=cfg.get("vst"), pan=track.pan,
+                     automation=[e for e in track.automation if tone_at(e["time"]) == tone])
+        out.append((part, DoubleTrack.parse(cfg["double_track"]) if "double_track" in cfg else dt))
+    return [(t, d) for t, d in out if t.notes]
 
 
 def tempo_map(sections: List[Section], bpm: float) -> List[tuple]:
@@ -211,21 +252,26 @@ def regenerate_section(
     if target is None:
         raise ValueError(f"Section '{section_name}' not found in composition")
 
+    shift = target.start_beat()
+    window = target.end_beat() - shift
+
     def rebase(s: Section) -> Section:
         return Section(name=s.name, start_bar=s.start_bar - target.start_bar + 1,
                        end_bar=s.end_bar - target.start_bar + 1,
-                       density=s.density, bindings=dict(s.bindings))
+                       density=s.density, bindings=dict(s.bindings),
+                       beats_per_bar=s.beats_per_bar, beat_offset=s.start_beat() - shift,
+                       beat_length=s.beat_length)
 
     bars_in = target.end_bar - target.start_bar + 1
     if target.is_micro:
         sub_sections = [Section(name=target.name.partition(".")[0], start_bar=1, end_bar=bars_in,
-                                density=target.density, bindings=dict(target.bindings)),
+                                density=target.density, bindings=dict(target.bindings),
+                                beats_per_bar=target.beats_per_bar, beat_offset=0.0),
                         rebase(target)]
     else:
         sub_sections = [rebase(target)] + [rebase(s) for s in composition.sections
                                            if s.name.startswith(target.name + ".")]
 
-    shift = (target.start_bar - 1) * 4  # beats
     layer_set = set(layers) if layers else None
 
     # Layers we keep still inform the ones we regenerate (kick_follow hears the riff, etc.)
@@ -235,9 +281,9 @@ def regenerate_section(
             role = _track_role(t)
             if role in layer_set or role in context:
                 continue
-            window = [Note(n.pitch, n.duration, n.velocity, round(n.start - shift, 4), n.articulation, n.drum)
-                      for n in t.notes if n.start is not None and shift <= n.start < shift + bars_in * 4]
-            context[role] = Track(notes=window, instrument=t.instrument, is_drum=t.is_drum,
+            clip = [Note(n.pitch, n.duration, n.velocity, round(n.start - shift, 4), n.articulation, n.drum)
+                    for n in t.notes if n.start is not None and shift <= n.start < shift + window]
+            context[role] = Track(notes=clip, instrument=t.instrument, is_drum=t.is_drum,
                                   name=t.name, role=role)
 
     sub = compose(
@@ -254,7 +300,7 @@ def regenerate_section(
             continue
         kept = [
             n for n in original.notes
-            if n.start is None or not (shift <= n.start < shift + bars_in * 4)
+            if n.start is None or not (shift <= n.start < shift + window)
         ]
         sub_track = (next((t for t in sub.tracks if t.name == original.name), None)
                      or next((t for t in sub.tracks if _track_role(t) == role), None))

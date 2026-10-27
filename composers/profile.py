@@ -93,6 +93,7 @@ def blend_profiles(profiles_with_weights: List[Tuple[GenreProfile, float]]) -> G
                 hh=d.hh, oh=d.oh, clap=d.clap, perc=d.perc, lanes=dict(d.lanes),
                 swing=d.swing, ghost_density=d.ghost_density,
                 weight=d.weight * w, kick_follow=d.kick_follow, feel=d.feel, layer=d.layer,
+                meter=d.meter,
             ))
 
     # Instruments: primary's roles, plus any distinctive role from others

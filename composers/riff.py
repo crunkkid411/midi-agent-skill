@@ -21,6 +21,12 @@ Styles (instrument `style`, overridable per section via `riff_style`):
   tremolo      — 16th-note tremolo picking over chord tones
   power_strum  — 8th-note power-chord strums, upbeats palm-muted (punk/pop-punk)
   clean_arp    — clean 8th-note arpeggio of the chord (intros, ambient breaks)
+  palm_eighths — straight palm-muted 8ths on the chord root, accented downbeat
+                 (post-hardcore / pop-punk verses and intros)
+
+open_chords and power_strum voice their chords with the section's `voicing`
+binding → the role's `voicing` → power_chords (use guitar_open for real
+open-chord shapes).
 
 The pedal note is the chord root on the lowest string of profile.tuning
 (drop C → C2), so the riff always sits on the open string the genre
@@ -87,7 +93,7 @@ def generate_riff(
 
         for bar in range(leaf.start_bar, leaf.end_bar + 1):
             bp = motif.bar(leaf, bar - leaf.start_bar)
-            bar_start = (bar - 1) * 4
+            bar_start = leaf.bar_start(bar)
             span = span_at(timeline, bar_start)
             if span is None:
                 continue
@@ -98,11 +104,13 @@ def generate_riff(
             pedal = pedal_note(root_pc, low_string)
             scale_notes = _scale_above(pedal, tonic_pc, span.scale, register)
             ctx = _BarCtx(bar_start, pedal, scale_notes, span, tonic_pc, energy, density,
-                          bp.rng, bp.octave_drop, pinch_rate, low_string)
+                          bp.rng, bp.octave_drop, pinch_rate, low_string, leaf.beats_per_bar,
+                          leaf.bindings.get("voicing") or inst.voicing or "power_chords")
             {
                 "pedal_tone": _pedal_tone, "gallop": _gallop, "chug": _chug,
                 "open_chords": _open_chords, "tremolo": _tremolo,
                 "power_strum": _power_strum, "clean_arp": _clean_arp,
+                "palm_eighths": _palm_eighths,
             }.get(style, _pedal_tone)(w, ctx)
 
     track = Track(name="Rhythm Guitar", instrument=inst.gm or "distortion-guitar",
@@ -125,6 +133,8 @@ class _BarCtx:
     octave_drop: bool
     pinch_rate: float
     low_string: int
+    beats: float = 4.0        # bar length in quarter-note beats (3/4 → 3)
+    voicing: str = "power_chords"
 
 
 class _Writer:
@@ -191,7 +201,7 @@ def _pinch(ctx: _BarCtx) -> bool:
 
 def _pedal_tone(w: _Writer, ctx: _BarCtx) -> None:
     highs_in_row = 0
-    for slot in range(8):
+    for slot in range(int(ctx.beats * 2)):
         t = ctx.start + slot * 0.5
         if slot == 0:
             w.chord(_power(ctx.pedal), t, 0.5, ctx.energy, "open", accent=True)
@@ -208,7 +218,7 @@ def _pedal_tone(w: _Writer, ctx: _BarCtx) -> None:
 
 def _gallop(w: _Writer, ctx: _BarCtx) -> None:
     reverse = ctx.rng.random() < 0.3
-    for beat in range(4):
+    for beat in range(int(ctx.beats)):
         t = ctx.start + beat
         if beat in (0, 2) and ctx.rng.random() < 0.6:
             w.chord(_power(ctx.pedal if beat == 0 else _high_root(ctx)), t, 0.5,
@@ -230,16 +240,17 @@ def _high_root(ctx: _BarCtx) -> int:
 def _chug(w: _Writer, ctx: _BarCtx) -> None:
     pos, consecutive_roots, pending_16th = 0.0, 0, False
     weights = {0.25: 1, 0.5: 3, 1.0: 3 if ctx.density < 0.6 else 1.5, 2.0: 1 if ctx.density < 0.6 else 0.3}
-    while pos < 4 - 1e-6:
+    bar = ctx.beats
+    while pos < bar - 1e-6:
         t = ctx.start + pos
         # Rests: likelier the longer the root has repeated (metalerator's rule)
         if not pending_16th and pos > 0 and consecutive_roots and \
                 ctx.rng.random() < 0.06 * consecutive_roots * (1.2 - ctx.density):
             rest = 0.5 if ctx.rng.random() < 0.7 else 1.0
-            pos += min(rest, 4 - pos)
+            pos += min(rest, bar - pos)
             consecutive_roots = 0
             continue
-        allowed = {d: wt for d, wt in weights.items() if d <= 4 - pos + 1e-6}
+        allowed = {d: wt for d, wt in weights.items() if d <= bar - pos + 1e-6} or {0.25: 1}
         dur = 0.25 if pending_16th else ctx.rng.choices(list(allowed), weights=list(allowed.values()))[0]
         pending_16th = (dur == 0.25 and not pending_16th)   # 16ths come in pairs
         if dur >= 1.0 and ctx.rng.random() < 0.5:
@@ -261,23 +272,26 @@ def _open_chords(w: _Writer, ctx: _BarCtx) -> None:
     span = ctx.span
     root = ctx.pedal if ctx.pedal >= ctx.low_string else ctx.pedal + 12
     chord = voice_chord(span.roman, ctx.tonic_pc, span.scale, (ctx.low_string, ctx.low_string + 28),
-                        "power_chords", low_root=ctx.low_string)
+                        ctx.voicing, low_root=ctx.low_string)
     if ctx.density >= 0.85 and ctx.rng.random() < 0.5:
         # Driving chorus: quarter-note power chords
-        for beat in range(4):
+        for beat in range(int(ctx.beats)):
             w.chord(chord, ctx.start + beat, 1.0, ctx.energy, "open", accent=beat == 0)
     else:
-        w.chord(chord, ctx.start, 2.0, ctx.energy, "open", accent=True)
-        for off in (2.0, 2.5, 3.0, 3.5):
+        ring = min(2.0, ctx.beats - 1.0) if ctx.beats > 2 else ctx.beats
+        w.chord(chord, ctx.start, ring, ctx.energy, "open", accent=True)
+        off = ring
+        while off < ctx.beats - 1e-6:
             if ctx.rng.random() < 0.75:
                 w.note(root, ctx.start + off, 0.5, 0.7, ctx.energy, "palm_mute", low=True)
+            off += 0.5
 
 
 def _tremolo(w: _Writer, ctx: _BarCtx) -> None:
     tones = [p for p in voice_chord(ctx.span.roman, ctx.tonic_pc, ctx.span.scale,
                                     (ctx.pedal + 12, ctx.pedal + 31), "triads")]
     note = ctx.rng.choice(tones)
-    for step in range(16):
+    for step in range(int(ctx.beats * 4)):
         if step % 4 == 0 and ctx.rng.random() < 0.5:
             note = ctx.rng.choice(tones + [p for p in ctx.scale if p > ctx.pedal + 12][:4])
         w.note(note, ctx.start + step * 0.25, 0.25, 0.7 + 0.2 * (step % 4 == 0), ctx.energy,
@@ -286,9 +300,9 @@ def _tremolo(w: _Writer, ctx: _BarCtx) -> None:
 
 def _power_strum(w: _Writer, ctx: _BarCtx) -> None:
     chord = voice_chord(ctx.span.roman, ctx.tonic_pc, ctx.span.scale,
-                        (ctx.low_string, ctx.low_string + 28), "power_chords",
+                        (ctx.low_string, ctx.low_string + 28), ctx.voicing,
                         low_root=ctx.low_string)
-    for slot in range(8):
+    for slot in range(int(ctx.beats * 2)):
         down = slot % 2 == 0
         w.chord(chord, ctx.start + slot * 0.5, 0.5, ctx.energy,
                 "open" if down else "palm_mute", accent=slot in (0, 4), rel=0.9 if down else 0.75)
@@ -298,6 +312,16 @@ def _clean_arp(w: _Writer, ctx: _BarCtx) -> None:
     tones = voice_chord(ctx.span.roman, ctx.tonic_pc, ctx.span.scale,
                         (ctx.pedal + 12, ctx.pedal + 36), "open_voicings")
     order = tones + tones[-2:0:-1]
-    for slot in range(8):
+    for slot in range(int(ctx.beats * 2)):
         w.note(order[slot % len(order)], ctx.start + slot * 0.5, 1.0, 0.45, ctx.energy,
                "open", low=(slot == 0))
+
+
+def _palm_eighths(w: _Writer, ctx: _BarCtx) -> None:
+    root = ctx.pedal
+    for slot in range(int(ctx.beats * 2)):
+        accent = slot == 0 or (slot % 4 == 0 and ctx.rng.random() < 0.5)
+        if accent:
+            w.chord(_power(root), ctx.start + slot * 0.5, 0.5, ctx.energy, "open", accent=True)
+        else:
+            w.note(root, ctx.start + slot * 0.5, 0.5, 0.75, ctx.energy, "palm_mute", low=True)

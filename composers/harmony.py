@@ -54,18 +54,20 @@ def build_timeline(profile: GenreProfile, sections: List[Section], key: Optional
         for leaf in kids:
             own = leaf.bindings.get("progression")
             if leaf is not top and own is not None and own != top.bindings.get("progression"):
-                prog, origin = progression_for(profile, leaf, rng), leaf.start_bar
+                prog, origin = progression_for(profile, leaf, rng), leaf.start_beat()
             else:
-                prog, origin = top_prog, top.start_bar
+                prog, origin = top_prog, top.start_beat()
+            if leaf.beats_per_bar != top.beats_per_bar:
+                origin = leaf.start_beat()      # a meter change restarts the chord grid
             scale = scale_for(leaf, key_scale)
-            bpc = max(0.25, prog.bars_per_chord)
+            chord_beats = max(0.25, prog.bars_per_chord) * leaf.beats_per_bar
             beat = leaf.start_beat()
             end = leaf.end_beat()
             while beat < end - 1e-6:
-                idx = int((beat - (origin - 1) * 4 + 1e-6) // (bpc * 4))
-                chord_end = min(end, (origin - 1) * 4 + (idx + 1) * bpc * 4)
+                idx = int((beat - origin + 1e-6) // chord_beats)
+                chord_end = min(end, origin + (idx + 1) * chord_beats)
                 if chord_end <= beat:
-                    chord_end = min(end, beat + bpc * 4)
+                    chord_end = min(end, beat + chord_beats)
                 timeline.append(ChordSpan(beat, chord_end, prog.roman[idx % len(prog.roman)],
                                           scale, leaf, prog))
                 beat = chord_end

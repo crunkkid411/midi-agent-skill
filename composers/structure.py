@@ -32,7 +32,42 @@ def plan_sections(profile: GenreProfile, total_bars: Optional[int],
 
     total_bars=None with use_form=True renders the full form template.
     """
-    return _apply_play_in(profile, _plan(profile, total_bars, rng or random.Random(), use_form))
+    sections = _apply_play_in(profile, _plan(profile, total_bars, rng or random.Random(), use_form))
+    return assign_meters(sections, profile.meter)
+
+
+def meter_beats(meter) -> float:
+    """'3/4' → 3.0, '6/8' → 3.0, '7/8' → 3.5, '5/4' → 5.0 (quarter-note beats per bar)."""
+    if not meter:
+        return 4.0
+    if isinstance(meter, (list, tuple)):
+        num, den = meter
+    else:
+        num, _, den = str(meter).partition("/")
+    return float(num) * 4.0 / float(den or 4)
+
+
+def assign_meters(sections: List[Section], song_meter: str = "4/4") -> List[Section]:
+    """Give every section its beats-per-bar and absolute beat offset.
+    A section's `meter` binding (inherited by its micro-sections) wins over
+    the song meter; offsets accumulate, so everything after a 3/4
+    breakdown lands on the right beat."""
+    cursor = 0.0
+    tops = sorted(top_sections(sections), key=lambda s: s.start_bar)
+    for top in tops:
+        top.beats_per_bar = meter_beats(top.bindings.get("meter") or song_meter)
+        top.beat_offset = cursor
+        kids = sorted((s for s in sections if s.name.startswith(top.name + ".")), key=lambda s: s.start_bar)
+        inner = cursor
+        for kid in kids:
+            kid.beats_per_bar = meter_beats(kid.bindings.get("meter") or song_meter)
+            kid.beat_offset = inner
+            inner += kid.bars() * kid.beats_per_bar
+        length = (inner - cursor) if kids else top.bars() * top.beats_per_bar
+        if kids and abs(length - top.bars() * top.beats_per_bar) > 1e-6:
+            top.beat_length = length
+        cursor += length
+    return sections
 
 
 def _apply_play_in(profile: GenreProfile, sections: List[Section]) -> List[Section]:

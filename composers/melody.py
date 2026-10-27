@@ -17,6 +17,14 @@ Styles (instrument `style`, overridable per section via `melody_style`):
   riff_octave                      — the rhythm guitar's non-pedal notes, an
                                      octave up (metalcore lead doubling)
   tremolo_lead                     — 16th tremolo on a slow melody
+  vocal_line                       — sung phrasing: syllabic 8ths/quarters moving by
+                                     step, 2-bar phrases that end on a held note and
+                                     then breathe (rest) — clean-vocal hooks
+  pedal_ostinato                   — second-guitar figure: a moving chord tone
+                                     alternating with a fixed high pedal note in 8ths,
+                                     phrase ends bent into feedback (post-hardcore,
+                                     emo, math rock)
+All styles follow the section's meter (bar length from the section).
 """
 
 from typing import Dict, List, Optional
@@ -72,7 +80,8 @@ def generate_melody(
         last = (register[0] + register[1]) // 2
         for bar in range(leaf.start_bar, leaf.end_bar + 1):
             bp = motif.bar(leaf, bar - leaf.start_bar)
-            start = (bar - 1) * 4
+            start = leaf.bar_start(bar)
+            blen = leaf.beats_per_bar
             span = span_at(timeline, start)
             if span is None:
                 continue
@@ -81,17 +90,23 @@ def generate_melody(
             r = bp.rng
             before = len(notes)
             if "riff_octave" in style and riff_track is not None:
-                _riff_octave(riff_track, start, register, vmin, vmax, r, notes)
+                _riff_octave(riff_track, start, blen, register, vmin, vmax, r, notes)
             elif "arpeggio" in style:
-                _emit_arpeggio(tones, start, 4, register, vmin, vmax, r, notes)
+                _emit_arpeggio(tones, start, blen, register, vmin, vmax, r, notes)
             elif "stab" in style:
-                _emit_stab_lead(tones, start, 4, register, vmin, vmax, r, notes)
+                _emit_stab_lead(tones, start, blen, register, vmin, vmax, r, notes)
             elif "sustained_hook" in style:
-                last = _emit_hook(tones, start, register, vmin, vmax, r, notes, last)
+                last = _emit_hook(tones, start, blen, register, vmin, vmax, r, notes, last)
             elif "tremolo" in style:
-                last = _emit_tremolo(tones, start, register, vmin, vmax, r, notes, last)
+                last = _emit_tremolo(tones, start, blen, register, vmin, vmax, r, notes, last)
+            elif "vocal_line" in style:
+                last = _emit_vocal_line(tones, tonic_pc, scale, start, blen, bp.position, register,
+                                        vmin, vmax, r, notes, last)
+            elif "pedal_ostinato" in style:
+                _emit_pedal_ostinato(tones, tonic_pc, span.scale, start, blen, bar - leaf.start_bar,
+                                     register, vmin, vmax, r, notes)
             else:
-                last = _emit_melodic_line(tones, tonic_pc, scale, start, 4, register,
+                last = _emit_melodic_line(tones, tonic_pc, scale, start, blen, register,
                                           vmin, vmax, density, r, notes, last, busy)
                 if "harmonized_thirds" in style:
                     _add_thirds(notes[before:], tonic_pc, span.scale, register, notes)
@@ -148,10 +163,11 @@ def _emit_stab_lead(chord_tones, start_beat, dur_beats, register, vmin, vmax, rn
         ))
 
 
-def _emit_hook(chord_tones, start, register, vmin, vmax, rng, notes, last):
+def _emit_hook(chord_tones, start, blen, register, vmin, vmax, rng, notes, last):
     choices = sorted({midi_in_register(p, register) for p in chord_tones})
     rhythm = rng.choice([[(0, 2), (2, 2)], [(0, 3), (3, 1)], [(0, 1.5), (1.5, 2.5)], [(0, 4)]])
-    for off, dur in rhythm:
+    k = blen / 4.0
+    for off, dur in ((o * k, d * k) for o, d in rhythm):
         pitch = min(choices, key=lambda p: abs(p - last) + rng.random() * 3)
         notes.append(Note(pitch=midi_to_pitch_str(pitch), duration=beats_to_duration(dur),
                           velocity=round(rng.uniform(vmin, vmax), 3), start=round(start + off, 4)))
@@ -159,14 +175,15 @@ def _emit_hook(chord_tones, start, register, vmin, vmax, rng, notes, last):
     return last
 
 
-def _emit_tremolo(chord_tones, start, register, vmin, vmax, rng, notes, last):
+def _emit_tremolo(chord_tones, start, blen, register, vmin, vmax, rng, notes, last):
     choices = sorted({midi_in_register(p, register) for p in chord_tones})
+    half_len = blen / 2
     for half in range(2):
         pitch = min(choices, key=lambda p: abs(p - last) + rng.random() * 4)
-        for s in range(8):
+        for s in range(int(half_len * 4)):
             notes.append(Note(pitch=midi_to_pitch_str(pitch), duration="16",
                               velocity=round(rng.uniform(vmin, vmax) * (1.0 if s % 4 == 0 else 0.85), 3),
-                              start=round(start + half * 2 + s * 0.25, 4), articulation="open"))
+                              start=round(start + half * half_len + s * 0.25, 4), articulation="open"))
         last = pitch
     return last
 
@@ -223,12 +240,12 @@ def _add_thirds(line: List[Note], tonic_pc: int, scale_name: str, register, out:
                             velocity=round((n.velocity or 0.7) * 0.92, 3), start=n.start))
 
 
-def _riff_octave(riff: Track, bar_start: float, register, vmin, vmax, rng, out):
+def _riff_octave(riff: Track, bar_start: float, blen: float, register, vmin, vmax, rng, out):
     """Lead doubles the riff's melodic (non-palm-muted) notes an octave or two up.
     Only the top note of each riff onset is taken, so power chords become a line."""
     tops: Dict[float, Note] = {}
     for n in riff.notes:
-        if n.start is None or not (bar_start <= n.start < bar_start + 4):
+        if n.start is None or not (bar_start <= n.start < bar_start + blen):
             continue
         if n.articulation == "palm_mute":
             continue
@@ -239,3 +256,56 @@ def _riff_octave(riff: Track, bar_start: float, register, vmin, vmax, rng, out):
         p = midi_in_register(_p(n.pitch) + 12, register)
         out.append(Note(pitch=midi_to_pitch_str(p), duration=n.duration,
                         velocity=round(rng.uniform(vmin, vmax), 3), start=n.start))
+
+
+def _emit_vocal_line(chord_tones, tonic_pc, scale_name, start, blen, position, register,
+                     vmin, vmax, rng, notes, last):
+    """Sung phrasing. Even motif bars sing a syllabic line (8ths and quarters,
+    stepwise, landing on a chord tone on the downbeat); odd bars finish the
+    phrase on a held chord tone and breathe for the rest of the bar."""
+    intervals = SCALES.get(scale_name, SCALES["minor"])
+    scaled = sorted({midi_in_register((5 * 12) + tonic_pc + i + o, register)
+                     for i in intervals for o in (-12, 0, 12)})
+    anchors = [midi_in_register(p, register) for p in chord_tones]
+    pitch = min(anchors, key=lambda p: abs(p - last))
+    if position % 2 == 0:
+        t, end = start + (0.5 if rng.random() < 0.4 else 0.0), start + blen   # pickup or downbeat
+        while t < end - 0.25:
+            dur = rng.choice([0.5, 0.5, 0.5, 1.0])
+            dur = min(dur, end - t)
+            notes.append(Note(pitch=midi_to_pitch_str(pitch), duration=beats_to_duration(dur),
+                              velocity=round(rng.uniform(vmin, vmax), 3), start=round(t, 4)))
+            last = pitch
+            idx = min(range(len(scaled)), key=lambda i: abs(scaled[i] - pitch))
+            step = rng.choice([-1, 1, 1, 0, 2, -2])
+            pitch = scaled[max(0, min(len(scaled) - 1, idx + step))]
+            t += dur
+    else:
+        hold = min(blen, rng.choice([1.5, 2.0, 2.5]))
+        end_pitch = min(anchors, key=lambda p: abs(p - last))
+        notes.append(Note(pitch=midi_to_pitch_str(end_pitch), duration=beats_to_duration(hold),
+                          velocity=round(rng.uniform(vmin, vmax) * 0.95, 3), start=round(start, 4)))
+        last = end_pitch
+    return last
+
+
+def _emit_pedal_ostinato(chord_tones, tonic_pc, scale_name, start, blen, position, register,
+                         vmin, vmax, rng, notes):
+    """Second guitar: 8th notes alternating a moving chord tone with a fixed
+    high pedal (the tonic or 5th at the top of the register, like an open B
+    or E string). The last note of every 4th bar bends into feedback."""
+    pedal = midi_in_register(tonic_pc + 7 + 60, (register[1] - 12, register[1]))
+    moving = sorted({midi_in_register(p, (register[0], pedal - 1)) for p in chord_tones})
+    slots = int(blen * 2)
+    for s in range(slots):
+        t = start + s * 0.5
+        if s % 2 == 0:
+            p = moving[(s // 2) % len(moving)]
+            art = "open"
+        else:
+            p, art = pedal, "open"
+        if position % 4 == 3 and s == slots - 1:
+            art = "bend"
+        notes.append(Note(pitch=midi_to_pitch_str(p), duration="8",
+                          velocity=round(rng.uniform(vmin, vmax) * (1.0 if s % 2 == 0 else 0.85), 3),
+                          start=round(t, 4), articulation=art))

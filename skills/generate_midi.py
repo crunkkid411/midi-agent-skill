@@ -139,6 +139,8 @@ def _write(composition: Composition, tracks, path: Path, channel_base: int = 0,
     midi.addTempo(0, 0, composition.bpm)
     for beat, bpm in composition.tempo_map:
         midi.addTempo(0, beat, bpm)
+    for beat, num, den in _meter_changes(composition):
+        midi.addTimeSignature(0, beat, num, {1: 0, 2: 1, 4: 2, 8: 3, 16: 4}.get(den, 2), 24)
     warned = warned if warned is not None else set()
     for track_idx, track in enumerate(tracks):
         channel = _assign_channel(track_idx + channel_base, track.is_drum)
@@ -265,13 +267,12 @@ def _phrase_events(composition: Composition, track: Track, imap: InstrumentMap):
     section with a phrase-end fill gets the next Fill key for its last beat;
     the final section ends on an End key."""
     tops = [s for s in composition.sections if not s.is_micro]
-    active = {round(n.start // 4) for n in track.notes if n.start is not None}
+    starts = sorted(n.start for n in track.notes if n.start is not None)
     counts: dict = {}
     out = []
     for i, sec in enumerate(tops):
-        bars = range(sec.start_bar - 1, sec.end_bar)
         start, end = sec.start_beat(), sec.end_beat()
-        if not any(b in active for b in bars) or (track.role or "drums") in (sec.bindings.get("mute") or []):
+        if not any(start <= t < end for t in starts) or (track.role or "drums") in (sec.bindings.get("mute") or []):
             continue
         part = imap.part_map.get(sec.base, sec.base)
         if sec.bindings.get("stop"):
@@ -292,6 +293,25 @@ def _phrase_events(composition: Composition, track: Track, imap: InstrumentMap):
                 out.append((end_keys[0], end - tail, end))
             elif sec.bindings.get("fill") is not False:
                 out.append((fill_keys[counts[part] % len(fill_keys)], end - tail, end))
+    return out
+
+
+def _meter_changes(composition: Composition):
+    """(beat, numerator, denominator) wherever the bar length changes."""
+    out, current = [], None
+    leaves = sorted((s for s in composition.sections
+                     if s.is_micro or not any(k.name.startswith(s.name + ".") for k in composition.sections)),
+                    key=lambda s: s.start_beat())
+    for sec in leaves:
+        meter = sec.bindings.get("meter") or None
+        if meter is None:
+            num, den = (4, 4) if abs(sec.beats_per_bar - 4.0) < 1e-6 else (int(sec.beats_per_bar), 4)
+        else:
+            a, _, b = str(meter).partition("/")
+            num, den = int(a), int(b or 4)
+        if (num, den) != current and not (current is None and (num, den) == (4, 4)):
+            out.append((sec.start_beat(), num, den))
+        current = (num, den)
     return out
 
 

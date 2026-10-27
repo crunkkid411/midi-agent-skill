@@ -55,6 +55,7 @@ class DrumPattern:
     kick_follow: bool = False
     feel: Optional[str] = None          # "halftime", "double_time", "blast" — informational
     layer: str = "acoustic"             # "acoustic" (role drums) | "electronic" (role electronic_drums)
+    meter: Optional[str] = None         # meter the grid is written in ("3/4"); default: grid spans 4 beats
 
     def all_lanes(self) -> Dict[str, str]:
         out = {k: getattr(self, k) for k in DRUM_GRID_FIELDS}
@@ -75,7 +76,7 @@ class DrumPattern:
 SECTION_BINDING_KEYS = (
     "energy", "drum_pattern", "electronic_pattern", "progression", "scale", "riff_style",
     "bass_style", "melody_style", "chords_style", "voicing", "fill", "stop", "mute", "crash",
-    "kick_follow", "double_track", "automation", "tempo", "tempo_scale",
+    "kick_follow", "double_track", "automation", "tempo", "tempo_scale", "meter", "tone",
 )
 
 
@@ -101,6 +102,9 @@ class SectionBindings:
     automation: controller moves over the section, e.g.
       [{"param": "filter", "shape": "ramp_up", "roles": ["pad"], "from": 0.2, "to": 1.0}]
     tempo / tempo_scale: absolute BPM, or a multiple of the song tempo, for this section.
+    meter: time signature here ("3/4", "6/8", "7/8"); the song meter elsewhere.
+    tone: which instrument tone plays here — a name for every role that defines it,
+      or {role: tone} (e.g. {"rhythm_guitar": "clean"} for a clean intro).
     """
     energy: Optional[float] = None
     drum_pattern: Any = None
@@ -110,6 +114,8 @@ class SectionBindings:
     automation: List[Dict[str, Any]] = field(default_factory=list)
     tempo: Optional[float] = None
     tempo_scale: Optional[float] = None
+    meter: Optional[str] = None
+    tone: Any = None
     progression: Any = None
     scale: Optional[str] = None
     riff_style: Optional[str] = None
@@ -198,6 +204,7 @@ class InstrumentRole:
     double_track: Optional[DoubleTrack] = None  # multi-take recording (see DoubleTrack)
     articulations: Dict[str, Any] = field(default_factory=dict)  # e.g. {"pinch_harmonic_rate": 0.05}
     play_in: List[str] = field(default_factory=list)  # section names this role plays in (empty = all)
+    tones: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # tone name → {gm, vst, double_track}
 
 
 @dataclass
@@ -258,6 +265,7 @@ class GenreProfile:
     fills: Optional[FillConfig] = None
     motif: Optional[MotifConfig] = None
     humanize: Humanize = field(default_factory=Humanize)
+    meter: str = "4/4"                  # song meter; sections override with the `meter` binding
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "GenreProfile":
@@ -310,6 +318,7 @@ class GenreProfile:
                     double_track=DoubleTrack.parse(i.get("double_track")),
                     articulations=i.get("articulations", {}),
                     play_in=i.get("play_in", []),
+                    tones=i.get("tones", {}),
                 )
                 for i in data.get("instruments", [])
             ],
@@ -332,6 +341,7 @@ class GenreProfile:
             fills=FillConfig(**data["fills"]) if data.get("fills") else None,
             motif=MotifConfig(**data["motif"]) if data.get("motif") else None,
             humanize=Humanize(**data.get("humanize", {})),
+            meter=data.get("meter", "4/4"),
         )
 
     @classmethod

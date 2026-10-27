@@ -95,8 +95,9 @@ def generate_bass(
             add(root, span.start, dur)
         elif style == "wobble":
             t = span.start
+            bpb = sec.beats_per_bar
             while t < span.end - 1e-6:
-                bar_end = min(span.end, (int(t // 4) + 1) * 4)
+                bar_end = min(span.end, sec.start_beat() + (int((t - sec.start_beat()) // bpb + 1e-6) + 1) * bpb)
                 add(root, t, bar_end - t, vmax)
                 t = bar_end
         elif style == "walking":

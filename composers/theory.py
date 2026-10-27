@@ -72,6 +72,8 @@ def parse_roman(roman: str) -> dict:
     quality: 'major', 'minor', 'dim', 'half_dim', 'aug', or None (use scale default)
     """
     s = roman.strip()
+    major7 = any(tag in s for tag in ("maj", "M7", "M9", "Δ"))
+    s = s.replace("maj", "").replace("Δ", "").replace("M7", "7").replace("M9", "9")
     accidental = ""
     if s.startswith("b") or s.startswith("#"):
         accidental = s[0]
@@ -80,7 +82,8 @@ def parse_roman(roman: str) -> dict:
     # Match the longest roman prefix
     m = re.match(r"(III|II|IV|VII|VI|V|I|iii|ii|iv|vii|vi|v|i)(.*)$", s)
     if not m:
-        return {"degree": 0, "accidental": "", "quality": None, "extensions": [], "alterations": []}
+        return {"degree": 0, "accidental": "", "quality": None, "extensions": [], "alterations": [],
+                "major7": False}
     roman_part, rest = m.group(1), m.group(2)
     degree = ROMAN_DEGREE[roman_part.lower()]
 
@@ -118,6 +121,7 @@ def parse_roman(roman: str) -> dict:
         "quality": quality,
         "extensions": extensions,
         "alterations": alterations,
+        "major7": major7,
     }
 
 
@@ -153,11 +157,12 @@ def chord_pitches(roman: str, tonic_pc: int, scale_name: str, base_octave: int =
 
     pitches = [root + i for i in triad]
 
-    # Extensions
+    # Extensions ("maj7"/"M7"/"Δ" → major 7th; otherwise upper-case 7 = dominant)
+    seventh = 11 if parsed.get("major7") else 10
     for ext in parsed["extensions"]:
         if ext == 7:
             if quality == "major":
-                pitches.append(root + 10)  # dominant-7 default for upper-case 7 chords
+                pitches.append(root + seventh)
             elif quality == "minor":
                 pitches.append(root + 10)
             elif quality == "dim":
@@ -166,7 +171,7 @@ def chord_pitches(roman: str, tonic_pc: int, scale_name: str, base_octave: int =
                 pitches.append(root + 10)  # m7b5
         elif ext == 9:
             if 7 not in parsed["extensions"]:
-                pitches.append(root + 10)  # implicit 7
+                pitches.append(root + (seventh if quality == "major" else 10))  # implicit 7
             pitches.append(root + 14)
         elif ext == 11:
             pitches.append(root + 17)
@@ -196,7 +201,8 @@ def chord_root(roman: str, tonic_pc: int, scale_name: str, octave: int = 2) -> i
 
 # -------- Voicing --------
 
-VOICING_STYLES = ("triads", "extended_7th_9th", "power_chords", "open_voicings", "stab", "sustained")
+VOICING_STYLES = ("triads", "extended_7th_9th", "power_chords", "open_voicings", "guitar_open",
+                  "stab", "sustained")
 
 
 def voice_chord(roman: str, tonic_pc: int, scale_name: str, register: Tuple[int, int],
@@ -212,6 +218,8 @@ def voice_chord(roman: str, tonic_pc: int, scale_name: str, register: Tuple[int,
       extended_7th_9th          → same, extensions kept
       power_chords              → root + 5th + octave (no 3rd: distortion-safe)
       open_voicings             → root, 5th, 10th (3rd up an octave), + extensions
+      guitar_open               → open-chord guitar shape: root, 5th, octave, 3rd and
+                                  5th above (Am x02210 = A E A C E), + 7th if written
     low_root: if given (e.g. a guitar's lowest open string), the root is the
       lowest pitch with the right pitch class at or above it.
     """
@@ -223,6 +231,10 @@ def voice_chord(roman: str, tonic_pc: int, scale_name: str, register: Tuple[int,
         intervals = [0, 7, 12]
     elif voicing == "open_voicings":
         intervals = sorted({0, 7} | {i + 12 for i in intervals if i not in (0, 7)})
+    elif voicing == "guitar_open":
+        third = next((i for i in intervals if i in (3, 4)), 4)
+        sevenths = [i + 12 for i in intervals if i in (10, 11)]
+        intervals = sorted({0, 7, 12, third + 12, 19, *sevenths})
     elif voicing in ("triads", "stab", "sustained"):
         intervals = [i for i in intervals if i <= 7] or [0, 4, 7]
 
