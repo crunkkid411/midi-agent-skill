@@ -1,0 +1,164 @@
+{
+  "name": "metalcore",
+  "aliases": ["metal-core", "melodic-metalcore", "mcore"],
+  "tempo_range": [130, 170],
+  "default_key": "C minor",
+  "common_keys": ["C minor", "B minor", "C# minor", "D minor"],
+  "scales": ["minor", "phrygian", "harmonic_minor", "minor_pentatonic"],
+  "chord_progressions": [
+    {
+      "roman": ["i", "VI", "III", "VII"],
+      "weight": 1.0,
+      "source": "Melodic clean chorus — relative-minor form of vi-IV-I-V (Riffhard chorus guide)",
+      "bars_per_chord": 1.0
+    },
+    {
+      "roman": ["i", "bII", "i", "VII"],
+      "weight": 0.8,
+      "source": "Phrygian verse riff — open low-string pedal with b2 tension",
+      "bars_per_chord": 1.0
+    },
+    {
+      "roman": ["VI", "VII", "i", "i"],
+      "weight": 0.6,
+      "source": "Pre-chorus lift into the tonic",
+      "bars_per_chord": 1.0
+    },
+    {
+      "roman": ["i"],
+      "weight": 0.4,
+      "source": "Breakdown — open-string tonic pedal, rhythm carries the section",
+      "bars_per_chord": 4.0
+    }
+  ],
+  "voicing_style": "power_chords",
+  "drum_patterns": [
+    {
+      "name": "double-kick-drive",
+      "kick":  "xxxxxxxxxxxxxxxx",
+      "snare": "....x.......x...",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "swing": 0.5,
+      "ghost_density": 0.0,
+      "weight": 1.0
+    },
+    {
+      "name": "thrash-skank",
+      "kick":  "x.x.x.x.x.x.x.x.",
+      "snare": "..x...x...x...x.",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "swing": 0.5,
+      "ghost_density": 0.0,
+      "weight": 0.7
+    },
+    {
+      "name": "rock-backbeat-chorus",
+      "kick":  "x.....x.x.......",
+      "snare": "....x.......x...",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "oh":    "x...............",
+      "swing": 0.5,
+      "ghost_density": 0.05,
+      "weight": 0.7
+    },
+    {
+      "name": "halftime-breakdown",
+      "kick":  "x..x..x...x..x..",
+      "snare": "........x.......",
+      "hh":    "x...x...x...x...",
+      "swing": 0.5,
+      "ghost_density": 0.0,
+      "weight": 0.3
+    }
+  ],
+  "song_sections": [
+    {
+      "name": "intro",
+      "bars": 4,
+      "density": 0.5,
+      "note": "Clean/ambient guitar or filtered riff, full band slams in on the last bar",
+      "micro": []
+    },
+    {
+      "name": "verse",
+      "bars": 8,
+      "density": 0.85,
+      "note": "Screamed vocals over palm-muted riffing and double kick",
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.8, "note": "Main riff, chugs locked to the kick" },
+        { "name": "B", "bars": 4, "density": 0.9, "note": "Riff variation, building toward the pre-chorus" }
+      ]
+    },
+    {
+      "name": "pre-chorus",
+      "bars": 4,
+      "density": 0.75,
+      "note": "Open chords ring out, drums lift to the cymbals"
+    },
+    {
+      "name": "chorus",
+      "bars": 8,
+      "density": 0.9,
+      "note": "Clean sung hook over open power chords — the 'good cop' half",
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.9, "note": "Hook statement" },
+        { "name": "B", "bars": 4, "density": 0.95, "note": "Hook repeat, lead harmony on top" }
+      ]
+    },
+    {
+      "name": "break",
+      "bars": 8,
+      "density": 0.35,
+      "note": "Breakdown: half-time, open-string chugs locked to the kick, snare on beat 3",
+      "micro": [
+        { "name": "chug", "bars": 4, "density": 0.35, "note": "Syncopated chug pattern on the tonic" },
+        { "name": "drop", "bars": 4, "density": 0.4, "note": "Heavier variation, gaps for impact" }
+      ]
+    },
+    {
+      "name": "outro",
+      "bars": 4,
+      "density": 0.3,
+      "note": "Final breakdown or a ringing chord with feedback"
+    }
+  ],
+  "instruments": [
+    { "role": "drums", "register": [35, 81], "style": "metalcore_double_kick", "velocity_range": [0.6, 1.0] },
+    { "role": "bass", "gm": "electric-bass-pick", "register": [24, 48], "style": "sustained_root", "velocity_range": [0.75, 0.95] },
+    { "role": "chords", "gm": "distortion-guitar", "register": [36, 60], "style": "stab", "velocity_range": [0.75, 0.95] },
+    { "role": "melody", "gm": "overdriven-guitar", "register": [62, 86], "style": "melodic_lead", "velocity_range": [0.65, 0.9] }
+  ],
+  "velocity_ranges": {
+    "drums": [0.6, 1.0],
+    "chords": [0.75, 0.95],
+    "melody": [0.65, 0.9],
+    "bass": [0.75, 0.95]
+  },
+  "principles": [
+    "Low-tuned (drop C / drop B) palm-muted power-chord riffing in minor/Phrygian — the b2 and open-string tonic pedal carry the heaviness",
+    "Double-kick and thrash-beat drumming at 130-170 BPM in verses, opening to a backbeat with cymbals under the chorus",
+    "Good cop / bad cop contrast — screamed, riff-driven verses vs. a clean, melodic chorus over i-VI-III-VII",
+    "Half-time breakdown as the climax — kick locked to the guitar chugs, snare on beat 3, space between hits"
+  ],
+  "references": [
+    { "artist": "Killswitch Engage", "song": "My Curse" },
+    { "artist": "August Burns Red", "song": "White Washed" },
+    { "artist": "Parkway Drive", "song": "Carrion" },
+    { "artist": "Architects", "song": "Doomsday" }
+  ],
+  "research_sources": [
+    "https://metalcoredeathcorehardcoregrindcore.fandom.com/wiki/Breakdowns?oldid=3972 (breakdowns: open low strings, drop D-drop B, half-time, snare on 3, kick follows chugs)",
+    "https://www.riffhard.com/?p=37226 (clean melodic chorus after heavy verse; I-IV-V / vi-IV-I-V)",
+    "https://tunee.ai/music-generator/metalcore (BPM ranges: 120-170 general, 130-170 melodic metalcore)",
+    "https://guitarmasterclass.net/ls/Killswitch-Engage-Style2 (KsE-style lesson: drop B, B minor, 120 BPM)",
+    "https://medium.com/p/b137a6de5f49 (double-bass programming: 16th kicks under 2-and-4 snare)",
+    "https://eprints.soton.ac.uk/496107 (breakdown treated as a distinct formal section)"
+  ],
+  "sound_design": {
+    "synth_presets": {},
+    "drum_samples": {},
+    "fx_chain": ["noise_gate", "tube_screamer_boost", "high_gain_amp", "4x12_cab_ir", "bus_compression"],
+    "notes": "Quad-tracked rhythm guitars hard-panned; bass DI + distorted layer; china/crash chokes on breakdown hits; optional string/synth pad under choruses."
+  },
+  "notes": "Breakdown is encoded as top-level 'break' (the schema has no 'breakdown' section). Its density is set below 0.4 so drums.py picks the lowest-energy (half-time) pattern. Drum patterns are 16-step."
+}

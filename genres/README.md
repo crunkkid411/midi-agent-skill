@@ -88,3 +88,4 @@ should fill it in when known so the data is captured.
 
 - `scenecore.json` — ported from the Ace-Step DAW reference plan (140 BPM, A minor, trap/breakcore drums, hyperpop stabs).
 - `lo-fi-hip-hop.json` — Nujabes/J Dilla-style boom-bap chillhop default.
+- `metalcore.json` — Killswitch Engage / August Burns Red-style metalcore (130-170 BPM, C minor / Phrygian, double-kick verses, clean chorus, half-time breakdown).

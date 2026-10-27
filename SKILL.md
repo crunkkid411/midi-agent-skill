@@ -63,6 +63,7 @@ midi-agent-skill/
 │   ├── _schema.json                   ← JSON Schema for profiles
 │   ├── README.md
 │   ├── lo-fi-hip-hop.json             ← seeded
+│   ├── metalcore.json                 ← researched (web)
 │   └── scenecore.json                 ← seeded from Ace-Step DAW reference
 ├── composers/                         ← deterministic Python builders
 │   ├── theory.py                      ← scales, Roman numerals, drum mapping

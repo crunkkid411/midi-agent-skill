@@ -36,6 +36,7 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 ├─ genres/                           # Cached genre profiles (JSON)
 │   ├─ _schema.json
 │   ├─ lo-fi-hip-hop.json
+│   ├─ metalcore.json
 │   └─ scenecore.json                # Seeded from Ace-Step DAW reference
 ├─ composers/                        # Deterministic Python builders
 │   ├─ theory.py                     # Scales, Roman numerals, drum mapping
