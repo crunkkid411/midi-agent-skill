@@ -41,7 +41,8 @@ See `_schema.json` for the full JSON schema. Required fields:
 Granularity fields every profile should carry: named progressions, ≥4 drum
 patterns (any lanes: crash, china, ride, toms, …), section/micro bindings
 (`drum_pattern`, `progression`, `scale`, `*_style`, `mute`, `stop`, `energy`),
-`form`, `fills`, `motif`, `humanize`; plus `tuning` and `layer_order` for
+`form`, `fills`, `motif`, `humanize`, section `automation`, `play_in` for
+sectional parts; plus `tuning`, `layer_order` and `double_track` modes for
 guitar-driven genres. See `workflows/genre-profile-spec.md`.
 
 ## Micro-sections — the nuance layer
@@ -94,5 +95,10 @@ genre via `--vst role=slug`.
 ## Seeded profiles
 
 - `scenecore.json` — ported from the Ace-Step DAW reference plan (140 BPM, A minor, trap/breakcore drums, hyperpop stabs).
-- `lo-fi-hip-hop.json` — Nujabes/J Dilla-style boom-bap chillhop (swung rim/shaker variants, hats-only drops, half-time bridge, motif-based vibraphone).
-- `metalcore.json` — Killswitch Engage / August Burns Red / Parkway Drive-style metalcore. Drop C, riff-first layer order, pedal-tone/gallop/chug riffs. Double-kick, skank, gallop and blast verses, a stop before a kick-follows-riff breakdown, and a final chorus. Targets Superior Drummer 3 and Odin III (double-tracked).
+- `lo-fi-hip-hop.json` — Nujabes/J Dilla-style boom-bap chillhop. Swung rim/shaker variants, hats-only drops under a filter dip, half-time bridge, motif-based vibraphone, low-passed intro/outro. Beatmaker drums, Vital pad.
+- `crabcore.json` — Attack Attack!/I See Stars-style electronicore in drop C#.
+  - Guitars: double-tracked, with section-dependent take modes.
+  - Synths: trance-gated, pumping synths that follow the breakdown chugs; a wobble-bass breakdown; a pitch-riser build; a tape-stop stop.
+  - Arrangement: a euro-dance break on a Beatmaker drum machine at a lower tempo, and a slower second breakdown.
+  - VSTs: SD3, Odin III, Beatmaker, Serum 2, Vital.
+- `metalcore.json` — Killswitch Engage / August Burns Red / Parkway Drive-style metalcore. Drop C, riff-first layer order, pedal-tone/gallop/chug riffs. Double-kick, skank, gallop and blast verses, a stop before a kick-follows-riff breakdown, and a final chorus. Targets Superior Drummer 3 and Odin III, double-tracked: identical breakdowns, varied verses, octave-split choruses.

@@ -67,12 +67,16 @@ midi-agent-skill/
 │   ├── _schema.json                   ← JSON Schema for profiles
 │   ├── README.md
 │   ├── lo-fi-hip-hop.json             ← seeded, expanded
-│   ├── metalcore.json                 ← researched (web) — uses every field
+│   ├── metalcore.json                 ← researched (web)
+│   ├── crabcore.json                  ← researched (web) — uses every field
 │   └── scenecore.json                 ← seeded from Ace-Step DAW reference, expanded
 ├── instruments/                       ← VST / instrument maps (genre-independent)
 │   ├── README.md
 │   ├── superior-drummer-3.json        ← Toontrack default note map
 │   ├── odin-iii.json                  ← Solemn Tones Odin III (Swift Mode + keyswitches)
+│   ├── ujam-beatmaker.json            ← UJAM Beatmaker kit (Instrument mode)
+│   ├── ujam-beatmaker-style.json      ← UJAM Beatmaker song-part phrase keys (Style mode)
+│   ├── serum-2.json / vital.json      ← synths: CC map, pitch bend, glide
 │   ├── gm-drums.json
 │   └── _template.json
 ├── composers/                         ← deterministic Python builders
@@ -82,6 +86,8 @@ midi-agent-skill/
 │   ├── harmony.py                     ← shared chord timeline + motif repetition
 │   ├── chords.py                      ← chords + pad (power chords, root-position voicing)
 │   ├── riff.py                        ← rhythm guitar riffs (pedal tone, gallop, chug, ...)
+│   ├── doubling.py                    ← double/quad-tracked takes (identical/variation/octave/harmony)
+│   ├── automation.py                  ← filter sweeps, sidechain pump, wobble, risers, dives
 │   ├── drums.py                       ← bound patterns, any lanes, fills, crashes, kick_follow
 │   ├── bass.py                        ← sustained / walking / kick-locked / doubled / ...
 │   ├── melody.py                      ← melody + lead (hears drums, repeats motifs)
@@ -200,9 +206,13 @@ Full details: `workflows/lego-pipeline.md`.
 ## Targeting VSTs
 
 Instrument maps in `instruments/` are genre-independent. Composers write
-drum lanes and articulations (palm mute, pinch harmonic, …). The renderer
-maps them per track: kit notes for Superior Drummer 3, velocity bands and
-held keyswitches for Odin III, General MIDI otherwise. Set a role's `vst`
+drum lanes, articulations (palm mute, pinch harmonic, glide, …) and
+automation (filter, volume, pitch, macros). The renderer maps them per track:
+- Superior Drummer 3: kit notes
+- Odin III: velocity bands and held keyswitches
+- UJAM Beatmaker: kit notes, or song-part phrase keys in Style mode
+- Serum 2 / Vital: CCs, pitch bend and legato glides
+- General MIDI otherwise Set a role's `vst`
 in the profile, or `--vst role=slug` for any genre. See `instruments/README.md`.
 
 ---

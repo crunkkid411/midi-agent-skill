@@ -162,6 +162,14 @@
               "type": "string"
             },
             "description": "Extra lanes (also accepted as top-level keys)."
+          },
+          "layer": {
+            "type": "string",
+            "enum": [
+              "acoustic",
+              "electronic"
+            ],
+            "description": "electronic = played by the electronic_drums role (drum machine layer)."
           }
         },
         "additionalProperties": {
@@ -198,7 +206,8 @@
               "solo",
               "interlude",
               "outro",
-              "loop"
+              "loop",
+              "dance-break"
             ]
           },
           "bars": {
@@ -284,16 +293,37 @@
                   "description": "Per-section scale override (e.g. phrygian verse, minor chorus)."
                 },
                 "riff_style": {
-                  "type": "string",
-                  "description": "rhythm_guitar style here: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp"
+                  "description": "rhythm_guitar style here: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp May also be {role: style}.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
                 },
                 "bass_style": {
-                  "type": "string",
-                  "description": "bass style here: sustained_root, walking, kick_locked, doubled, root_eighths, octave, arpeggio"
+                  "description": "bass style here: sustained_root, walking, kick_locked, doubled, root_eighths, octave, arpeggio May also be {role: style}.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
                 },
                 "melody_style": {
-                  "type": "string",
-                  "description": "melody/lead style here: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead"
+                  "description": "melody/lead style here: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead May also be {role: style}.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
                 },
                 "voicing": {
                   "type": "string",
@@ -338,6 +368,132 @@
                 "kick_follow": {
                   "type": "boolean",
                   "description": "Kick doubles the rhythm guitar's low attacks."
+                },
+                "electronic_pattern": {
+                  "description": "Electronic drum layer pattern(s) here; that layer is silent where unset.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "chords_style": {
+                  "description": "chords/pad style here, or {role: style}.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
+                },
+                "double_track": {
+                  "type": "string",
+                  "enum": [
+                    "identical",
+                    "variation",
+                    "octave",
+                    "harmony"
+                  ],
+                  "description": "How the takes relate in this section."
+                },
+                "automation": {
+                  "type": "array",
+                  "description": "Controller automation over the section.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "param",
+                      "shape"
+                    ],
+                    "properties": {
+                      "param": {
+                        "type": "string",
+                        "description": "filter, volume, expression, mod_wheel, resonance, pitch, macro1-8"
+                      },
+                      "shape": {
+                        "type": "string",
+                        "enum": [
+                          "ramp_up",
+                          "ramp_down",
+                          "hold",
+                          "pump",
+                          "wobble",
+                          "dive",
+                          "rise"
+                        ]
+                      },
+                      "roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "drums",
+                            "electronic_drums",
+                            "rhythm_guitar",
+                            "bass",
+                            "synth_bass",
+                            "chords",
+                            "melody",
+                            "pad",
+                            "lead",
+                            "fx"
+                          ]
+                        }
+                      },
+                      "from": {
+                        "type": "number"
+                      },
+                      "to": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "reset": {
+                        "type": "number"
+                      },
+                      "depth": {
+                        "type": "number",
+                        "description": "pump: level ducked to"
+                      },
+                      "rate": {
+                        "type": "string",
+                        "enum": [
+                          "1",
+                          "2",
+                          "4",
+                          "8",
+                          "8t",
+                          "16",
+                          "16t"
+                        ]
+                      },
+                      "beats": {
+                        "type": "number",
+                        "description": "dive/rise length"
+                      },
+                      "semitones": {
+                        "type": "number",
+                        "description": "pitch lanes: bend amount in semitones (converted with the synth's pitch_bend_range)"
+                      }
+                    }
+                  }
+                },
+                "tempo": {
+                  "type": "number",
+                  "description": "Absolute BPM for this section."
+                },
+                "tempo_scale": {
+                  "type": "number",
+                  "description": "Multiple of the song tempo for this section (0.75 = slower breakdown)."
                 }
               }
             }
@@ -387,16 +543,37 @@
             "description": "Per-section scale override (e.g. phrygian verse, minor chorus)."
           },
           "riff_style": {
-            "type": "string",
-            "description": "rhythm_guitar style here: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp"
+            "description": "rhythm_guitar style here: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp May also be {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           },
           "bass_style": {
-            "type": "string",
-            "description": "bass style here: sustained_root, walking, kick_locked, doubled, root_eighths, octave, arpeggio"
+            "description": "bass style here: sustained_root, walking, kick_locked, doubled, root_eighths, octave, arpeggio May also be {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           },
           "melody_style": {
-            "type": "string",
-            "description": "melody/lead style here: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead"
+            "description": "melody/lead style here: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead May also be {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           },
           "voicing": {
             "type": "string",
@@ -441,6 +618,132 @@
           "kick_follow": {
             "type": "boolean",
             "description": "Kick doubles the rhythm guitar's low attacks."
+          },
+          "electronic_pattern": {
+            "description": "Electronic drum layer pattern(s) here; that layer is silent where unset.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "chords_style": {
+            "description": "chords/pad style here, or {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          },
+          "double_track": {
+            "type": "string",
+            "enum": [
+              "identical",
+              "variation",
+              "octave",
+              "harmony"
+            ],
+            "description": "How the takes relate in this section."
+          },
+          "automation": {
+            "type": "array",
+            "description": "Controller automation over the section.",
+            "items": {
+              "type": "object",
+              "required": [
+                "param",
+                "shape"
+              ],
+              "properties": {
+                "param": {
+                  "type": "string",
+                  "description": "filter, volume, expression, mod_wheel, resonance, pitch, macro1-8"
+                },
+                "shape": {
+                  "type": "string",
+                  "enum": [
+                    "ramp_up",
+                    "ramp_down",
+                    "hold",
+                    "pump",
+                    "wobble",
+                    "dive",
+                    "rise"
+                  ]
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "drums",
+                      "electronic_drums",
+                      "rhythm_guitar",
+                      "bass",
+                      "synth_bass",
+                      "chords",
+                      "melody",
+                      "pad",
+                      "lead",
+                      "fx"
+                    ]
+                  }
+                },
+                "from": {
+                  "type": "number"
+                },
+                "to": {
+                  "type": "number"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "reset": {
+                  "type": "number"
+                },
+                "depth": {
+                  "type": "number",
+                  "description": "pump: level ducked to"
+                },
+                "rate": {
+                  "type": "string",
+                  "enum": [
+                    "1",
+                    "2",
+                    "4",
+                    "8",
+                    "8t",
+                    "16",
+                    "16t"
+                  ]
+                },
+                "beats": {
+                  "type": "number",
+                  "description": "dive/rise length"
+                },
+                "semitones": {
+                  "type": "number",
+                  "description": "pitch lanes: bend amount in semitones (converted with the synth's pitch_bend_range)"
+                }
+              }
+            }
+          },
+          "tempo": {
+            "type": "number",
+            "description": "Absolute BPM for this section."
+          },
+          "tempo_scale": {
+            "type": "number",
+            "description": "Multiple of the song tempo for this section (0.75 = slower breakdown)."
           }
         }
       }
@@ -457,8 +760,10 @@
             "type": "string",
             "enum": [
               "drums",
+              "electronic_drums",
               "rhythm_guitar",
               "bass",
+              "synth_bass",
               "chords",
               "melody",
               "pad",
@@ -482,7 +787,7 @@
           },
           "style": {
             "type": "string",
-            "description": "Playing style. drums: free-form. rhythm_guitar: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp. bass: sustained_root, walking, kick_locked (sub_808*), doubled, root_eighths, octave, arpeggio. chords/pad: stab, sustained, sparse_held, strum8, pulse4. melody/lead: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead."
+            "description": "Playing style. drums: free-form. rhythm_guitar: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp. bass: sustained_root, walking, kick_locked (sub_808*), doubled, root_eighths, octave, arpeggio. chords/pad: stab, sustained, sparse_held, strum8, pulse4. melody/lead: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead. bass also: wobble. chords/pad also: trance_gate, follow_riff."
           },
           "velocity_range": {
             "type": "array",
@@ -510,12 +815,62 @@
             ]
           },
           "double_track": {
-            "type": "boolean",
-            "description": "Render hard-panned L/R takes with independent humanization."
+            "description": "Multi-take recording. true, a mode string, or {takes: 2|4, mode: identical|variation|octave|harmony, pan, inner_pan, variation_rate}. Chugs stay identical in every mode; per-section override via the double_track binding.",
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "identical",
+                  "variation",
+                  "octave",
+                  "harmony"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "takes": {
+                    "type": "integer",
+                    "enum": [
+                      2,
+                      4
+                    ]
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "identical",
+                      "variation",
+                      "octave",
+                      "harmony"
+                    ]
+                  },
+                  "pan": {
+                    "type": "number"
+                  },
+                  "inner_pan": {
+                    "type": "number"
+                  },
+                  "variation_rate": {
+                    "type": "number"
+                  }
+                }
+              }
+            ]
           },
           "articulations": {
             "type": "object",
-            "description": "Role articulation settings, e.g. {pinch_harmonic_rate: 0.04}"
+            "description": "Role settings: pinch_harmonic_rate (rhythm_guitar), glide_rate (bass/synth_bass 808 slides), gate (chords/pad trance_gate 16-step string)."
+          },
+          "play_in": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Section names this role plays in; muted everywhere else (synth leads only in choruses, etc)."
           }
         }
       }
@@ -603,8 +958,10 @@
         "type": "string",
         "enum": [
           "drums",
+          "electronic_drums",
           "rhythm_guitar",
           "bass",
+          "synth_bass",
           "chords",
           "melody",
           "pad",
@@ -682,16 +1039,37 @@
             "description": "Per-section scale override (e.g. phrygian verse, minor chorus)."
           },
           "riff_style": {
-            "type": "string",
-            "description": "rhythm_guitar style here: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp"
+            "description": "rhythm_guitar style here: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp May also be {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           },
           "bass_style": {
-            "type": "string",
-            "description": "bass style here: sustained_root, walking, kick_locked, doubled, root_eighths, octave, arpeggio"
+            "description": "bass style here: sustained_root, walking, kick_locked, doubled, root_eighths, octave, arpeggio May also be {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           },
           "melody_style": {
-            "type": "string",
-            "description": "melody/lead style here: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead"
+            "description": "melody/lead style here: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead May also be {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           },
           "voicing": {
             "type": "string",
@@ -736,6 +1114,132 @@
           "kick_follow": {
             "type": "boolean",
             "description": "Kick doubles the rhythm guitar's low attacks."
+          },
+          "electronic_pattern": {
+            "description": "Electronic drum layer pattern(s) here; that layer is silent where unset.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "chords_style": {
+            "description": "chords/pad style here, or {role: style}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          },
+          "double_track": {
+            "type": "string",
+            "enum": [
+              "identical",
+              "variation",
+              "octave",
+              "harmony"
+            ],
+            "description": "How the takes relate in this section."
+          },
+          "automation": {
+            "type": "array",
+            "description": "Controller automation over the section.",
+            "items": {
+              "type": "object",
+              "required": [
+                "param",
+                "shape"
+              ],
+              "properties": {
+                "param": {
+                  "type": "string",
+                  "description": "filter, volume, expression, mod_wheel, resonance, pitch, macro1-8"
+                },
+                "shape": {
+                  "type": "string",
+                  "enum": [
+                    "ramp_up",
+                    "ramp_down",
+                    "hold",
+                    "pump",
+                    "wobble",
+                    "dive",
+                    "rise"
+                  ]
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "drums",
+                      "electronic_drums",
+                      "rhythm_guitar",
+                      "bass",
+                      "synth_bass",
+                      "chords",
+                      "melody",
+                      "pad",
+                      "lead",
+                      "fx"
+                    ]
+                  }
+                },
+                "from": {
+                  "type": "number"
+                },
+                "to": {
+                  "type": "number"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "reset": {
+                  "type": "number"
+                },
+                "depth": {
+                  "type": "number",
+                  "description": "pump: level ducked to"
+                },
+                "rate": {
+                  "type": "string",
+                  "enum": [
+                    "1",
+                    "2",
+                    "4",
+                    "8",
+                    "8t",
+                    "16",
+                    "16t"
+                  ]
+                },
+                "beats": {
+                  "type": "number",
+                  "description": "dive/rise length"
+                },
+                "semitones": {
+                  "type": "number",
+                  "description": "pitch lanes: bend amount in semitones (converted with the synth's pitch_bend_range)"
+                }
+              }
+            }
+          },
+          "tempo": {
+            "type": "number",
+            "description": "Absolute BPM for this section."
+          },
+          "tempo_scale": {
+            "type": "number",
+            "description": "Multiple of the song tempo for this section (0.75 = slower breakdown)."
           }
         }
       }

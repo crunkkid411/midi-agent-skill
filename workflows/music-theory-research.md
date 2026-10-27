@@ -60,7 +60,14 @@ For a genre you need to understand:
 7. **Find the full song form** (fills `form`):
    - Map 2-3 reference songs section by section, including one-off sections (stop, pre-breakdown, build, final chorus) and which ones are optional.
 
-8. **Find the target instruments** (fills `instruments[].vst` and `instruments/<vst>.json` when the user names a VST):
+8. **Find what isn't notes** (fills section `automation`, `tempo_scale`, `double_track`, `play_in`):
+   - Filter sweeps, sidechain pumping, risers, tape stops, wobble: where do they happen?
+   - Tempo changes or tempo-shifted sections?
+   - Are guitars double/quad tracked, and do the takes differ (octave chords on one side in choruses)?
+   - Which parts appear only in some sections (synth lead in choruses only, clean vocal in the chorus)?
+   - Is there a drum-machine layer next to the kit (electronic genres, electronicore)?
+
+9. **Find the target instruments** (fills `instruments[].vst` and `instruments/<vst>.json` when the user names a VST):
    - WebSearch: `"{vst}" MIDI map keyswitches articulations manual`
    - Record note maps, keyswitch behaviour (latching or held), velocity-switched articulations and playable range. Mark anything unverified in the map's `notes`.
 
@@ -164,7 +171,8 @@ in the composition brief and in the self-evaluation step.
 2. Validate against `genres/_schema.json`.
 3. Granularity checklist — every profile needs: named progressions, ≥4 drum patterns,
    section bindings (`drum_pattern`, `progression`, `mute`, …), `form`, `fills`, `motif`,
-   `humanize`; plus `tuning` + `layer_order` for guitar-driven genres.
+   `humanize`, `automation`, `play_in` where parts are sectional; plus `tuning`, `layer_order`
+   and `double_track` modes for guitar-driven genres.
 4. Use lowercase-hyphenated slug for `name` and filename.
 5. Add aliases for spelling variants (`"lofi"`, `"lo-fi"`, etc).
 6. Cite at least 2 specific references in `references[]`.

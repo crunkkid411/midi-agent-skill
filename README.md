@@ -20,7 +20,8 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 - **Layer overrides** — user-provided ideas (a bassline, a chord progression) slot directly into the pipeline alongside generated parts. Human-AI collaboration on the same composition.
 - **Riff-first genres** — a rhythm-guitar composer (pedal tone, gallop, breakdown chugs, power chords on the tuning's open string). Profiles can reorder layers so the kick and bass lock to the riff.
 - **Section-level control** — every section and micro-section can bind its own groove (or a sequence per phrase), progression, scale, styles, mutes and stops. Form templates have optional slots. Fills land at phrase ends. Motifs repeat with variation.
-- **Any VST, any genre** — instrument maps translate drum lanes and articulations for Superior Drummer 3, Solemn Tones Odin III (Swift Mode velocity bands + held keyswitches), General MIDI or your own map, with per-track MIDI export for DAW templates.
+- **Any VST, any genre** — instrument maps translate drum lanes, articulations and automation for Superior Drummer 3, Solemn Tones Odin III (Swift Mode velocity bands + held keyswitches), UJAM Beatmaker (kit or song-part phrase keys), Serum 2, Vital, General MIDI or your own map, with per-track MIDI export for DAW templates.
+- **Production moves, not just notes** — double/quad-tracked guitars whose takes are identical, varied, octave-split or harmonized per section; filter sweeps, sidechain pumping, wobble bass, risers and tape-stop dives; drum-machine layers; section tempo changes.
 
 ---
 
@@ -39,9 +40,10 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 ├─ genres/                           # Cached genre profiles (JSON)
 │   ├─ _schema.json
 │   ├─ lo-fi-hip-hop.json
-│   ├─ metalcore.json                # Uses every profile field
+│   ├─ metalcore.json
+│   ├─ crabcore.json                 # Uses every profile field
 │   └─ scenecore.json                # Seeded from Ace-Step DAW reference
-├─ instruments/                      # VST maps: superior-drummer-3, odin-iii, gm-drums, _template
+├─ instruments/                      # VST maps: superior-drummer-3, odin-iii, ujam-beatmaker(-style), serum-2, vital, gm-drums, _template
 ├─ composers/                        # Deterministic Python builders
 │   ├─ theory.py                     # Scales, Roman numerals, voicings, tunings
 │   ├─ profile.py                    # Load / blend profiles, section bindings
@@ -49,6 +51,8 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 │   ├─ harmony.py                    # Chord timeline + motif repetition
 │   ├─ chords.py                     # Chords + pads
 │   ├─ riff.py                       # Rhythm guitar riffs
+│   ├─ doubling.py                   # Double/quad-tracked takes
+│   ├─ automation.py                 # Filter sweeps, pumps, wobbles, risers
 │   ├─ drums.py                      # Bound grooves, fills, crashes, kick_follow
 │   ├─ bass.py                       # Sustained / walking / kick-locked / doubled
 │   ├─ melody.py                     # Melody + lead

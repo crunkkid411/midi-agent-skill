@@ -1,152 +1,499 @@
 {
   "name": "scenecore",
-  "aliases": ["scene-core", "hyperpop-scenecore"],
-  "tempo_range": [135, 160],
+  "aliases": [
+    "scene-core",
+    "hyperpop-scenecore"
+  ],
+  "tempo_range": [
+    135,
+    160
+  ],
   "default_key": "A minor",
-  "common_keys": ["A minor", "E minor", "F# minor"],
-  "scales": ["minor", "harmonic_minor", "minor_pentatonic"],
-  "layer_order": ["chords", "drums", "bass", "pad", "melody", "lead"],
+  "common_keys": [
+    "A minor",
+    "E minor",
+    "F# minor"
+  ],
+  "scales": [
+    "minor",
+    "harmonic_minor",
+    "minor_pentatonic"
+  ],
+  "layer_order": [
+    "chords",
+    "drums",
+    "bass",
+    "pad",
+    "melody",
+    "lead"
+  ],
   "chord_progressions": [
-    { "name": "emo-loop", "roman": ["i", "VI", "III", "VII"], "weight": 1.0, "bars_per_chord": 2.0,
-      "source": "Common scenecore/emo-trap loop" },
-    { "name": "two-chord-stab", "roman": ["i", "VI"], "weight": 0.8, "bars_per_chord": 4.0,
-      "source": "Two-chord stab loop" },
-    { "name": "glossy", "roman": ["i9", "VI9"], "weight": 0.4, "bars_per_chord": 4.0,
-      "source": "Glossier hyperpop variant" },
-    { "name": "build-climb", "roman": ["VI", "VII", "i", "V"], "weight": 0.5, "bars_per_chord": 1.0,
-      "source": "Riser into the drop — harmonic-minor V pulls back to i" }
+    {
+      "name": "emo-loop",
+      "roman": [
+        "i",
+        "VI",
+        "III",
+        "VII"
+      ],
+      "weight": 1.0,
+      "bars_per_chord": 2.0,
+      "source": "Common scenecore/emo-trap loop"
+    },
+    {
+      "name": "two-chord-stab",
+      "roman": [
+        "i",
+        "VI"
+      ],
+      "weight": 0.8,
+      "bars_per_chord": 4.0,
+      "source": "Two-chord stab loop"
+    },
+    {
+      "name": "glossy",
+      "roman": [
+        "i9",
+        "VI9"
+      ],
+      "weight": 0.4,
+      "bars_per_chord": 4.0,
+      "source": "Glossier hyperpop variant"
+    },
+    {
+      "name": "build-climb",
+      "roman": [
+        "VI",
+        "VII",
+        "i",
+        "V"
+      ],
+      "weight": 0.5,
+      "bars_per_chord": 1.0,
+      "source": "Riser into the drop — harmonic-minor V pulls back to i"
+    }
   ],
   "voicing_style": "stab",
   "drum_patterns": [
-    { "name": "trap-breakcore-140", "ghost_density": 0.15, "weight": 1.0,
-      "kick":  "x..x.x..x..x.x..",
+    {
+      "name": "trap-breakcore-140",
+      "ghost_density": 0.15,
+      "weight": 1.0,
+      "kick": "x..x.x..x..x.x..",
       "snare": "....x.......x...",
-      "hh":    "xxxxxxxxxxxxxxxx",
-      "clap":  "....x.......x..." },
-    { "name": "trap-hat-rolls", "weight": 0.7,
-      "kick":  "x.....x...x..x..",
-      "clap":  "........x.......",
-      "hh":    "x.x.x.x.x.x.x.x.x.x.x.x.xxxxxxxx",
-      "oh":    "..............x." },
-    { "name": "breakcore-chop", "feel": "double_time", "weight": 0.5,
-      "kick":  "x.x...x...x.x...",
+      "hh": "xxxxxxxxxxxxxxxx",
+      "clap": "....x.......x..."
+    },
+    {
+      "name": "trap-hat-rolls",
+      "weight": 0.7,
+      "kick": "x.....x...x..x..",
+      "clap": "........x.......",
+      "hh": "x.x.x.x.x.x.x.x.x.x.x.x.xxxxxxxx",
+      "oh": "..............x."
+    },
+    {
+      "name": "breakcore-chop",
+      "feel": "double_time",
+      "weight": 0.5,
+      "kick": "x.x...x...x.x...",
       "snare": "....x..x.x..x.xx",
-      "hh":    "x.x.x.x.x.x.x.x.",
-      "crash": "x..............." },
-    { "name": "halftime-drop", "feel": "halftime", "weight": 0.5,
-      "kick":  "x.......x.......",
+      "hh": "x.x.x.x.x.x.x.x.",
+      "crash": "x..............."
+    },
+    {
+      "name": "halftime-drop",
+      "feel": "halftime",
+      "weight": 0.5,
+      "kick": "x.......x.......",
       "snare": "........x.......",
-      "hh":    "x.x.x.x.x.x.x.x." },
-    { "name": "build-four", "weight": 0.2,
-      "kick":  "x...x...x...x...",
-      "clap":  "....x.......x...",
-      "hh":    "..x...x...x...x." }
+      "hh": "x.x.x.x.x.x.x.x."
+    },
+    {
+      "name": "build-four",
+      "weight": 0.2,
+      "kick": "x...x...x...x...",
+      "clap": "....x.......x...",
+      "hh": "..x...x...x...x."
+    }
   ],
   "fills": {
     "phrase_bars": 4,
     "probability": 0.45,
-    "types": ["snare_build", "kick_snare_burst", "drop_out"],
-    "beats": [1.0, 2.0],
+    "types": [
+      "snare_build",
+      "kick_snare_burst",
+      "drop_out"
+    ],
+    "beats": [
+      1.0,
+      2.0
+    ],
     "section_end_probability": 1.0
   },
   "motif": {
     "bars": 2,
-    "variations": ["exact", "last_bar", "exact", "octave_drop"],
-    "roles": ["lead", "melody"]
+    "variations": [
+      "exact",
+      "last_bar",
+      "exact",
+      "octave_drop"
+    ],
+    "roles": [
+      "lead",
+      "melody"
+    ]
   },
-  "humanize": { "timing": 0.0, "velocity": 0.03 },
+  "humanize": {
+    "timing": 0.0,
+    "velocity": 0.03
+  },
   "song_sections": [
     {
-      "name": "intro", "bars": 4, "density": 0.4, "energy": 0.4,
-      "progression": "two-chord-stab", "mute": ["drums", "bass", "lead"],
+      "name": "intro",
+      "bars": 4,
+      "density": 0.4,
+      "energy": 0.4,
+      "progression": "two-chord-stab",
+      "mute": [
+        "drums",
+        "bass",
+        "lead"
+      ],
       "note": "Filtered synth stab + reversed FX, no drums",
-      "micro": []
-    },
-    {
-      "name": "verse", "bars": 8, "density": 0.7, "energy": 0.7,
-      "progression": ["emo-loop", "two-chord-stab"],
-      "micro": [
-        { "name": "A", "bars": 4, "density": 0.6, "drum_pattern": "halftime-drop", "mute": ["lead"],
-          "note": "Chord stabs + bass, sparse drums" },
-        { "name": "B", "bars": 4, "density": 0.85, "drum_pattern": "trap-hat-rolls",
-          "note": "Full kit with hat rolls, lead enters" }
+      "micro": [],
+      "automation": [
+        {
+          "param": "filter",
+          "shape": "ramp_up",
+          "roles": [
+            "chords"
+          ],
+          "from": 0.15,
+          "to": 0.6
+        }
       ]
     },
     {
-      "name": "pre-chorus", "bars": 4, "density": 0.75, "energy": 0.85,
-      "progression": "build-climb", "drum_pattern": "build-four", "scale": "harmonic_minor",
-      "fill": true, "bass_style": "octave", "mute": ["lead"],
-      "note": "Build: four-on-the-floor kick, snare build at the end"
-    },
-    {
-      "name": "drop", "bars": 8, "density": 1.0, "energy": 1.0,
-      "progression": ["emo-loop", "glossy"],
+      "name": "verse",
+      "bars": 8,
+      "density": 0.7,
+      "energy": 0.7,
+      "progression": [
+        "emo-loop",
+        "two-chord-stab"
+      ],
       "micro": [
-        { "name": "A", "bars": 4, "density": 1.0, "drum_pattern": "trap-breakcore-140",
-          "note": "Maximum density, full stack" },
-        { "name": "B", "bars": 4, "density": 0.95, "drum_pattern": "breakcore-chop",
-          "note": "Breakcore chop variation under the lead arpeggio" }
+        {
+          "name": "A",
+          "bars": 4,
+          "density": 0.6,
+          "drum_pattern": "halftime-drop",
+          "mute": [
+            "lead"
+          ],
+          "note": "Chord stabs + bass, sparse drums"
+        },
+        {
+          "name": "B",
+          "bars": 4,
+          "density": 0.85,
+          "drum_pattern": "trap-hat-rolls",
+          "note": "Full kit with hat rolls, lead enters"
+        }
       ]
     },
     {
-      "name": "break", "bars": 4, "density": 0.35, "energy": 0.5,
-      "progression": "glossy", "drum_pattern": "halftime-drop", "mute": ["bass"],
-      "note": "Halftime breather — pad and stabs, kick on 1 and 3"
+      "name": "pre-chorus",
+      "bars": 4,
+      "density": 0.75,
+      "energy": 0.85,
+      "progression": "build-climb",
+      "drum_pattern": "build-four",
+      "scale": "harmonic_minor",
+      "fill": true,
+      "bass_style": "octave",
+      "mute": [
+        "lead"
+      ],
+      "note": "Build: four-on-the-floor kick, snare build at the end",
+      "automation": [
+        {
+          "param": "filter",
+          "shape": "ramp_up",
+          "roles": [
+            "chords",
+            "pad",
+            "lead"
+          ],
+          "from": 0.3,
+          "to": 1.0
+        },
+        {
+          "param": "pitch",
+          "shape": "rise",
+          "roles": [
+            "pad"
+          ],
+          "semitones": 12,
+          "beats": 16
+        }
+      ]
     },
     {
-      "name": "outro", "bars": 4, "density": 0.3, "energy": 0.3,
-      "progression": "two-chord-stab", "drum_pattern": "halftime-drop", "mute": ["lead"], "fill": false,
-      "note": "Strip to filtered chords, halftime feel"
+      "name": "drop",
+      "bars": 8,
+      "density": 1.0,
+      "energy": 1.0,
+      "progression": [
+        "emo-loop",
+        "glossy"
+      ],
+      "micro": [
+        {
+          "name": "A",
+          "bars": 4,
+          "density": 1.0,
+          "drum_pattern": "trap-breakcore-140",
+          "note": "Maximum density, full stack"
+        },
+        {
+          "name": "B",
+          "bars": 4,
+          "density": 0.95,
+          "drum_pattern": "breakcore-chop",
+          "note": "Breakcore chop variation under the lead arpeggio"
+        }
+      ],
+      "automation": [
+        {
+          "param": "volume",
+          "shape": "pump",
+          "roles": [
+            "pad",
+            "chords"
+          ],
+          "depth": 0.35,
+          "rate": "4"
+        }
+      ]
+    },
+    {
+      "name": "break",
+      "bars": 4,
+      "density": 0.35,
+      "energy": 0.5,
+      "progression": "glossy",
+      "drum_pattern": "halftime-drop",
+      "mute": [
+        "bass"
+      ],
+      "note": "Halftime breather at a slower tempo — pad and filtered stabs, kick on 1 and 3",
+      "tempo_scale": 0.8,
+      "automation": [
+        {
+          "param": "filter",
+          "shape": "hold",
+          "roles": [
+            "chords",
+            "pad"
+          ],
+          "value": 0.45,
+          "reset": 1.0
+        }
+      ]
+    },
+    {
+      "name": "outro",
+      "bars": 4,
+      "density": 0.3,
+      "energy": 0.3,
+      "progression": "two-chord-stab",
+      "drum_pattern": "halftime-drop",
+      "mute": [
+        "lead"
+      ],
+      "fill": false,
+      "note": "Strip to filtered chords, halftime feel",
+      "automation": [
+        {
+          "param": "filter",
+          "shape": "ramp_down",
+          "roles": [
+            "chords",
+            "pad"
+          ],
+          "from": 0.15,
+          "to": 1.0
+        }
+      ]
     }
   ],
   "form": [
-    { "section": "intro" },
-    { "section": "verse" },
-    { "section": "pre-chorus" },
-    { "section": "drop" },
-    { "section": "verse", "probability": 0.7 },
-    { "section": "break", "probability": 0.6 },
-    { "section": "pre-chorus" },
-    { "section": "drop", "energy": 1.0 },
-    { "section": "outro" }
+    {
+      "section": "intro"
+    },
+    {
+      "section": "verse"
+    },
+    {
+      "section": "pre-chorus"
+    },
+    {
+      "section": "drop"
+    },
+    {
+      "section": "verse",
+      "probability": 0.7
+    },
+    {
+      "section": "break",
+      "probability": 0.6
+    },
+    {
+      "section": "pre-chorus"
+    },
+    {
+      "section": "drop",
+      "energy": 1.0
+    },
+    {
+      "section": "outro"
+    }
   ],
   "instruments": [
-    { "role": "drums", "register": [35, 81], "style": "trap_breakcore", "velocity_range": [0.5, 0.95] },
-    { "role": "bass", "gm": "synth-bass-1", "register": [28, 45], "style": "sub_808_distorted",
-      "velocity_range": [0.7, 0.9] },
-    { "role": "chords", "gm": "lead-2-sawtooth", "register": [55, 76], "style": "stab",
-      "velocity_range": [0.55, 0.8] },
-    { "role": "pad", "gm": "pad-3-polysynth", "register": [57, 81], "style": "sustained",
-      "voicing": "open_voicings", "velocity_range": [0.3, 0.45] },
-    { "role": "lead", "gm": "lead-1-square", "register": [67, 88], "style": "fast_arpeggio",
-      "velocity_range": [0.6, 0.85] }
+    {
+      "role": "drums",
+      "register": [
+        35,
+        81
+      ],
+      "style": "trap_breakcore",
+      "velocity_range": [
+        0.5,
+        0.95
+      ],
+      "vst": "ujam-beatmaker"
+    },
+    {
+      "role": "bass",
+      "gm": "synth-bass-1",
+      "register": [
+        28,
+        45
+      ],
+      "style": "sub_808_distorted",
+      "velocity_range": [
+        0.7,
+        0.9
+      ],
+      "vst": "serum-2",
+      "articulations": {
+        "glide_rate": 0.15
+      }
+    },
+    {
+      "role": "chords",
+      "gm": "lead-2-sawtooth",
+      "register": [
+        55,
+        76
+      ],
+      "style": "stab",
+      "velocity_range": [
+        0.55,
+        0.8
+      ],
+      "vst": "serum-2"
+    },
+    {
+      "role": "pad",
+      "gm": "pad-3-polysynth",
+      "register": [
+        57,
+        81
+      ],
+      "style": "sustained",
+      "voicing": "open_voicings",
+      "velocity_range": [
+        0.3,
+        0.45
+      ],
+      "vst": "vital"
+    },
+    {
+      "role": "lead",
+      "gm": "lead-1-square",
+      "register": [
+        67,
+        88
+      ],
+      "style": "fast_arpeggio",
+      "velocity_range": [
+        0.6,
+        0.85
+      ],
+      "vst": "serum-2"
+    }
   ],
   "velocity_ranges": {
-    "drums": [0.4, 0.95],
-    "chords": [0.5, 0.8],
-    "pad": [0.3, 0.45],
-    "lead": [0.6, 0.85],
-    "bass": [0.7, 0.9]
+    "drums": [
+      0.4,
+      0.95
+    ],
+    "chords": [
+      0.5,
+      0.8
+    ],
+    "pad": [
+      0.3,
+      0.45
+    ],
+    "lead": [
+      0.6,
+      0.85
+    ],
+    "bass": [
+      0.7,
+      0.9
+    ]
   },
   "principles": [
     "Hyperpop chord stabs — minor key, simple i-VI loop, sharp staccato attacks with short release",
     "Aggressive trap/breakcore drums at 140-155 BPM: 16th hats with 32nd-note rolls, chopped breakcore snares, hard 808 kicks",
-    "Distorted maximum texture — 808 locked to the kick, bright supersaw stabs and pads, high velocities (0.6-0.9)",
+    "Distorted maximum texture — 808 locked to the kick with octave glides, bright supersaw stabs and pads pumping against the kick, filter-swept builds with pitch risers",
     "Energy contrast — drumless intro, halftime verse A, four-on-the-floor build with a snare roll, wall-of-sound drop"
   ],
   "references": [
-    { "artist": "100 gecs", "song": "money machine" },
-    { "artist": "underscores", "song": "Spoiled Little Brat" }
+    {
+      "artist": "100 gecs",
+      "song": "money machine"
+    },
+    {
+      "artist": "underscores",
+      "song": "Spoiled Little Brat"
+    }
   ],
   "research_sources": [
     "Ported from claude_code/plans/scenecore-composition.md (Ace-Step DAW reference)",
     "https://blog.soundtrap.com/?p=742 (hyperpop: distinct intro loop, build until drums + 808 enter, 808 glides)",
-    "https://www.musehub.com/course/g3-course-hyperpop-production-explained (break-loop layering, clipping/saturation on drums, tempo changes)"
+    "https://www.musehub.com/course/g3-course-hyperpop-production-explained (break-loop layering, clipping/saturation on drums, tempo changes)",
+    "https://www.musehub.com/course/g3-course-hyperpop-production-explained (tempo changes as an arrangement device)"
   ],
   "sound_design": {
-    "synth_presets": { "chords": "supersaw_stab", "lead": "square_pluck", "pad": "polysynth_wide" },
+    "synth_presets": {
+      "chords": "supersaw_stab",
+      "lead": "square_pluck",
+      "pad": "polysynth_wide"
+    },
     "drum_samples": {},
-    "fx_chain": ["clipper", "saturator", "ott", "limiter"]
+    "fx_chain": [
+      "clipper",
+      "saturator",
+      "ott",
+      "limiter"
+    ],
+    "notes": "Synths on Serum 2 / Vital (instruments/serum-2.json, vital.json: MIDI Learn cutoff to CC74, volume to CC7; Mono+Legato portamento on the 808 for glides). Drums on UJAM Beatmaker (HUSTLE for trap) or any drum map via --vst."
   },
   "notes": "Seeded from the Ace-Step scenecore plan, expanded with form/fills/motif/section bindings. trap-hat-rolls uses a 32-step hat grid for 32nd-note rolls."
 }

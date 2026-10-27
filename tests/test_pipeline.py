@@ -27,7 +27,8 @@ from midi_types.genre_profile import Humanize
 from midi_types.instrument_map import load_instrument_map, InstrumentMap
 from midi_types.music import Composition
 from midi_types.gm_instruments import resolve_instrument
-from skills.generate_midi import generate_midi, generate_midi_from_dict, parse_pitch, _keyswitch_events
+from skills.generate_midi import (generate_midi, generate_midi_from_dict, parse_pitch, _keyswitch_events,
+                                  _untangle, _phrase_events)
 
 GENRES = sorted(p.stem for p in (ROOT / "genres").glob("*.json") if not p.name.startswith("_"))
 
@@ -54,9 +55,11 @@ def track(comp, role):
     return next(t for t in comp.tracks if t.role == role)
 
 
-def notes_in(t, section, beats_per_bar=4):
-    a, b = section.start_beat(beats_per_bar), section.end_beat(beats_per_bar)
-    return [n for n in t.notes if a - 1e-6 <= n.start < b - 1e-6]
+def notes_in(t, section, beats_per_bar=4, slack=0.03):
+    """Notes starting in the section. `slack` absorbs humanize jitter that
+    nudges a downbeat a few ms before its section starts."""
+    a, b = section.start_beat(beats_per_bar) - slack, section.end_beat(beats_per_bar) - slack
+    return [n for n in t.notes if a <= n.start < b]
 
 
 class TestProfiles(unittest.TestCase):
@@ -82,6 +85,9 @@ class TestProfiles(unittest.TestCase):
                                 any(m.drum_pattern for s in p.song_sections for m in s.micro))
                 self.assertTrue(any(s.progression for s in p.song_sections))
                 self.assertTrue(all(cp.name for cp in p.chord_progressions))
+                self.assertTrue(any(s.automation for s in p.song_sections) or
+                                any(m.automation for s in p.song_sections for m in s.micro),
+                                "automation (filter sweeps / pumps / risers)")
 
     def test_every_genre_renders_loop_and_form_deterministically(self):
         for g in GENRES:
@@ -229,6 +235,80 @@ class TestMetalcore(unittest.TestCase):
         self.assertGreater(near(kicks, riff), 0.95)
 
 
+class TestCrabcore(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = load_profile("crabcore")
+        cls.comp = compose(cls.profile, use_form=True, seed=4)
+        cls.sections = {s.name: s for s in cls.comp.sections}
+
+    def take(self, side):
+        return next(t for t in self.comp.tracks if t.name == f"Rhythm Guitar {side}")
+
+    def test_dance_break_is_drum_machine_and_synths(self):
+        db = self.sections["dance-break"]
+        roles = {t.role for t in self.comp.tracks if notes_in(t, db)}
+        self.assertIn("electronic_drums", roles)
+        self.assertTrue({"pad", "chords", "synth_bass"} <= roles)
+        self.assertFalse({"drums", "rhythm_guitar", "bass", "melody"} & roles)
+        kicks = sorted(n.start - db.start_beat() for n in notes_in(track(self.comp, "electronic_drums"), db)
+                       if n.drum == "kick")
+        self.assertTrue(all(abs(k % 1.0) < 0.02 or abs(k % 1.0 - 1) < 0.02 for k in kicks))  # four on the floor
+
+    def test_tempo_shifts_and_returns(self):
+        tm = dict(self.comp.tempo_map)
+        db = self.sections["dance-break"]
+        self.assertAlmostEqual(tm[db.start_beat()], round(142 * 0.9, 2))
+        self.assertEqual(self.comp.tempo_map[-1][1], 142)
+
+    def test_electronic_layer_only_where_bound(self):
+        e = track(self.comp, "electronic_drums")
+        self.assertFalse(notes_in(e, self.sections["verse.A"]))
+        self.assertTrue(notes_in(e, self.sections["verse.B"]))
+
+    def test_play_in_limits_parts(self):
+        melody = track(self.comp, "melody")
+        for name, sec in self.sections.items():
+            if not sec.is_micro and not name.startswith("chorus"):
+                self.assertFalse(notes_in(melody, sec), name)
+
+    def test_double_track_modes_per_section(self):
+        L, R = self.take("L"), self.take("R")
+
+        def pairs(sec, art=None):
+            ln = sorted((round(n.start, 1), parse_pitch(n.pitch)) for n in notes_in(L, sec)
+                        if art is None or n.articulation == art)
+            rn = sorted((round(n.start, 1), parse_pitch(n.pitch)) for n in notes_in(R, sec)
+                        if art is None or n.articulation == art)
+            return ln, rn
+        ln, rn = pairs(self.sections["breakdown"])
+        self.assertEqual([p for _, p in ln], [p for _, p in rn])           # identical
+        lo, ro = pairs(self.sections["chorus"], "open")
+        self.assertTrue(lo and all(b - a == 12 for (_, a), (_, b) in zip(lo, ro)))  # octave split
+        lp, rp = pairs(self.sections["chorus"], "palm_mute")
+        self.assertEqual(lp, rp)                                           # chugs stay identical
+        lv, rv = pairs(self.sections["verse"])
+        self.assertNotEqual(lv, rv)                                        # variation
+
+    def test_synth_stabs_follow_the_breakdown_riff(self):
+        bd = self.sections["breakdown"]
+        stabs = sorted({n.start for n in notes_in(track(self.comp, "chords"), bd)})
+        riff = [n.start for n in notes_in(self.take("L"), bd)]
+        self.assertGreater(near(stabs, riff, tol=0.05), 0.9)
+
+    def test_automation_lanes(self):
+        pad, sb = track(self.comp, "pad"), track(self.comp, "synth_bass")
+        ch = self.sections["chorus"]
+        pumps = [e for e in pad.automation if e["param"] == "volume" and ch.start_beat() <= e["time"] < ch.end_beat()]
+        self.assertTrue(pumps and min(e["value"] for e in pumps) < 0.5)
+        bd = self.sections["breakdown"]
+        wob = [e["value"] for e in sb.automation if e["param"] == "filter" and bd.start_beat() <= e["time"] < bd.end_beat()]
+        self.assertGreater(max(wob) - min(wob), 0.5)
+        stop = self.sections["stop"]
+        dive = [e for e in sb.automation if e["param"] == "pitch" and stop.start_beat() <= e["time"] <= stop.end_beat()]
+        self.assertLess(min(e["semitones"] for e in dive), -6)
+
+
 class TestStructure(unittest.TestCase):
     def test_optional_form_slots_vary_with_seed(self):
         p = load_profile("metalcore")
@@ -284,6 +364,41 @@ class TestRendering(unittest.TestCase):
         self.assertEqual(merged, [(24, 0.0, 1.0), (25, 1.0, 2.0)])
         latched = _keyswitch_events([(24, 0.0, 0.5), (24, 0.5, 1.0), (25, 1.0, 2.0)], latching=True)
         self.assertEqual([e[0] for e in latched], [24, 25])
+
+    def test_automation_tempo_and_glide_render(self):
+        try:
+            import mido
+        except ImportError:
+            self.skipTest("mido not installed")
+        comp = compose(load_profile("crabcore"), use_form=True, seed=4)
+        generate_midi(comp, split_tracks=True, out_dir=self.tmp)
+        events = lambda f: [m for t in mido.MidiFile(f).tracks for m in t]
+        d = self.tmp / comp.title
+        sb = events(next(d.glob("*Synth_Bass.mid")))
+        self.assertTrue(any(m.type == "control_change" and m.control == 74 for m in sb))
+        self.assertTrue(any(m.type == "pitchwheel" and m.pitch < -4000 for m in sb))
+        tempos = [m for m in events(self.tmp / f"{comp.title}.mid") if m.type == "set_tempo"]
+        self.assertGreaterEqual(len(tempos), 3)
+        # 808 glides overlap in scenecore (Serum 2 legato)
+        sc = compose(load_profile("scenecore"), use_form=True, seed=3)
+        self.assertTrue(any(n.articulation == "glide" for n in track(sc, "bass").notes))
+
+    def test_beatmaker_maps(self):
+        bm = load_instrument_map("beatmaker")
+        self.assertEqual((bm.drum_note("kick", 0), bm.drum_note("clap", 0), bm.drum_note("china", 0)), (36, 39, 50))
+        style = load_instrument_map("ujam-beatmaker-style")
+        comp = compose(load_profile("crabcore"), use_form=True, seed=4,
+                       vst_overrides={"electronic_drums": "ujam-beatmaker-style"})
+        keys = [k for k, _, _ in _phrase_events(comp, track(comp, "electronic_drums"), style)]
+        self.assertTrue(set(keys) <= set(range(60, 84)))
+        self.assertIn(69, keys)          # Chorus 1
+        self.assertIn(78, keys)          # Breakdown 1
+        self.assertIn(77, keys)          # Special 1 (dance break)
+
+    def test_untangle_same_pitch_overlaps(self):
+        out = _untangle([(38, 0.0, 0.25, 90), (38, 0.003, 0.25, 110), (40, 0.0, 2.0, 80), (40, 1.0, 1.0, 80)])
+        self.assertEqual([(p, t, round(d, 3), v) for p, t, d, v in out],
+                         [(38, 0.0, 0.253, 110), (40, 0.0, 1.0, 80), (40, 1.0, 1.0, 80)])
 
     def test_legacy_composition_dict(self):
         path = generate_midi_from_dict({

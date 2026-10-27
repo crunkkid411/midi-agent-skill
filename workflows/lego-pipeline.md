@@ -14,8 +14,9 @@
 ```
 structure → harmony timeline → [layer_order]
 
-default layer_order:  chords → pad → rhythm_guitar → drums → bass → melody → lead
+default layer_order:  chords → pad → rhythm_guitar → drums → electronic_drums → bass → synth_bass → melody → lead
 metalcore:            rhythm_guitar → drums → bass → pad → melody → lead → chords
+crabcore:             rhythm_guitar → drums → electronic_drums → bass → synth_bass → chords → pad → lead → melody
 ```
 
 A profile sets `layer_order` when the genre's real dependency differs.
@@ -27,15 +28,20 @@ is the rhythm section there and the kick and bass lock to it.
 |-------|--------|-------|
 | Structure | `structure.py` | profile `form` / `song_sections`, bars, seed |
 | Harmony timeline | `harmony.py` | profile progressions + section `progression` / `scale` bindings |
-| Chords / Pad | `chords.py` | timeline, voicing (section → role → profile) |
+| Chords / Pad | `chords.py` | timeline, voicing (section → role → profile), **riff attacks** (follow_riff) |
 | Rhythm guitar | `riff.py` | timeline, `tuning`, riff style, motif |
-| Drums | `drums.py` | sections, patterns, fills, **riff attacks** (kick_follow) |
-| Bass | `bass.py` | timeline, **drum track** (kick_locked), **rhythm guitar** (doubled) |
+| Drums / Electronic drums | `drums.py` | sections, patterns (by layer), fills, **riff attacks** (kick_follow) |
+| Bass / Synth bass | `bass.py` | timeline, **drum track** (kick_locked), **rhythm guitar** (doubled) |
 | Melody / Lead | `melody.py` | timeline, **drum track** (rests where busy), **rhythm guitar** (riff_octave), motif |
 
-The orchestrator in `composers/pipeline.py` runs them, then tags each track
-with its role and instrument map (`vst`), humanizes it, and double-tracks
-roles that ask for it (L/R takes, hard-panned).
+The orchestrator in `composers/pipeline.py` runs them, then post-processes
+every track:
+1. tags it with its role and instrument map (`vst`)
+2. writes the section automation lanes onto it (`automation.py`)
+3. splits double/quad-tracked roles into takes (`doubling.py`)
+4. humanizes each take independently
+
+Section `tempo` and `tempo_scale` bindings become the composition's tempo map.
 
 ## The Harmony Timeline
 
@@ -64,6 +70,14 @@ bindings into `Section.bindings`, and every composer reads only that:
 | `mute` | roles silent here |
 | `crash` | false = no downbeat crash, true = crash on a micro downbeat |
 | `kick_follow` | the kick doubles the rhythm guitar |
+| `electronic_pattern` | the drum-machine layer's groove here (silent where unset) |
+| `chords_style` | chords/pad style here (`trance_gate`, `follow_riff`, …) |
+| `double_track` | how the takes relate here: identical / variation / octave / harmony |
+| `automation` | controller lanes: ramp_up/down, hold, pump, wobble, dive, rise |
+| `tempo` / `tempo_scale` | tempo change for the section |
+
+Instruments can also set `play_in`, which mutes the role in every section not
+listed. The structure planner writes those mutes into the sections.
 
 ## What Each Layer Knows About the Others
 
@@ -71,6 +85,26 @@ bindings into `Section.bindings`, and every composer reads only that:
 - **Drums** render per leaf section (micro-sections where present). They use the bound pattern or pattern sequence and any lanes (crash, china, ride, toms, …). They crash on section downbeats and groove changes, put fills at phrase ends, and replace the kick grid with the riff attacks under `kick_follow`.
 - **Bass** follows chord roots on the bass's open string. It can sustain, walk, lock to the kick (`kick_locked`) or double the riff (`doubled`).
 - **Melody/Lead** target chord tones on strong beats and back off where the drum track is busy (fills, crashes, snare stacks). They repeat as a motif and can harmonize in 3rds or double the riff an octave up.
+
+## Double / Quad Tracking
+
+Metal and post-hardcore rhythm guitars are recorded at least twice and
+panned hard left and right. `doubling.py` turns one composed part into
+takes. The section's `double_track` mode decides how they relate:
+- **identical** for tight breakdowns
+- **variation** for verses, where some high notes and pinch harmonics move
+- **octave** for choruses, where one side plays its open chords an octave up
+- **harmony** for leads, a 3rd up
+
+Palm-muted chugs stay identical in every mode. Each take is humanized
+separately, because a copy-pasted double is not a double.
+
+## Automation
+
+Notes alone can't express a filtered intro, a build, sidechain pumping or a
+tape stop. Sections bind automation lanes and `automation.py` writes events
+onto the targeted roles. The renderer sends them as CCs or pitch bend through
+the instrument map's `cc_map` (General MIDI defaults otherwise).
 
 ## Motif Repetition
 

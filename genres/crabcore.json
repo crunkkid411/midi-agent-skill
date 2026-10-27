@@ -1,0 +1,270 @@
+{
+  "name": "crabcore",
+  "aliases": ["electronicore", "trancecore", "synthcore", "crab-core"],
+  "tempo_range": [135, 150],
+  "default_key": "C# minor",
+  "common_keys": ["C# minor", "C minor", "D minor", "B minor"],
+  "scales": ["minor", "phrygian", "harmonic_minor", "minor_pentatonic"],
+  "tuning": "drop_c#",
+  "layer_order": ["rhythm_guitar", "drums", "electronic_drums", "bass", "synth_bass", "chords", "pad", "lead", "melody"],
+  "chord_progressions": [
+    { "name": "verse-pedal", "roman": ["i", "i", "VI", "VII"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "Open-string chug verse, root moves to bVI / bVII on bars 3-4" },
+    { "name": "verse-phrygian", "roman": ["i", "i", "II", "i"], "weight": 0.8, "bars_per_chord": 1.0,
+      "source": "Phrygian b2 pedal (scale=phrygian)" },
+    { "name": "pre-chorus-lift", "roman": ["VI", "VII", "VI", "VII"], "weight": 0.6, "bars_per_chord": 1.0,
+      "source": "Build into the clean chorus" },
+    { "name": "chorus-anthem", "roman": ["VI", "VII", "i", "III"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "Bright, major-leaning clean chorus over the relative major chords" },
+    { "name": "chorus-trance", "roman": ["i", "VI", "III", "VII"], "weight": 0.8, "bars_per_chord": 1.0,
+      "source": "i-VI-III-VII — the trance/electronicore staple (Melodigging)" },
+    { "name": "dance-loop", "roman": ["i", "VI", "III", "VII"], "weight": 0.5, "bars_per_chord": 2.0,
+      "source": "Euro-dance break loop, two bars per chord" },
+    { "name": "breakdown-pedal", "roman": ["i"], "weight": 0.4, "bars_per_chord": 4.0,
+      "source": "Breakdown on the open low string" },
+    { "name": "breakdown-b2", "roman": ["i", "i", "i", "II"], "weight": 0.3, "bars_per_chord": 1.0,
+      "source": "Breakdown with a b2 lurch (scale=phrygian)" }
+  ],
+  "voicing_style": "power_chords",
+  "drum_patterns": [
+    { "name": "double-kick-drive",
+      "kick":  "xxxxxxxxxxxxxxxx",
+      "snare": "....x.......x...",
+      "ride":  "x...x...x...x...", "weight": 1.0 },
+    { "name": "thrash-skank", "feel": "double_time",
+      "kick":  "x...x...x...x...",
+      "snare": "..x...x...x...x.",
+      "hh":    "x.x.x.x.x.x.x.x.", "weight": 0.7 },
+    { "name": "chorus-china",
+      "kick":  "x.....x.x.x.....",
+      "snare": "....x.......x...",
+      "china": "x...x...x...x...",
+      "crash": "x...............", "weight": 0.8 },
+    { "name": "chorus-four", "feel": "straight",
+      "kick":  "x...x...x...x...",
+      "snare": "....x.......x...",
+      "oh":    "..x...x...x...x.",
+      "crash": "x...............", "weight": 0.5 },
+    { "name": "breakdown-crab", "feel": "halftime", "kick_follow": true,
+      "kick":  "x..x..x...x..x..",
+      "snare": "........x.......",
+      "china": "x...x...x...x...", "weight": 0.3 },
+    { "name": "breakdown-slow", "feel": "halftime", "kick_follow": true,
+      "kick":  "x.......x.......",
+      "snare": "........x.......",
+      "china": "x.......x.......",
+      "crash": "....a.......a...", "weight": 0.2 },
+    { "name": "edm-four", "layer": "electronic",
+      "kick":  "x...x...x...x...",
+      "clap":  "....x.......x...",
+      "hh":    "xxxxxxxxxxxxxxxx",
+      "oh":    "..x...x...x...x.", "weight": 1.0 },
+    { "name": "edm-build", "layer": "electronic",
+      "kick":  "x...x...x...x...",
+      "snare": "x.x.x.x.x.x.x.x.",
+      "hh":    "..x...x...x...x.", "weight": 0.4 },
+    { "name": "edm-halftime", "layer": "electronic", "feel": "halftime",
+      "kick":  "x.........x.....",
+      "clap":  "........x.......",
+      "hh":    "x.x.x.x.x.x.x.x.x.x.x.x.xxxxxxxx", "weight": 0.4 },
+    { "name": "breakdown-reinforce", "layer": "electronic", "kick_follow": true,
+      "kick":  "x...............",
+      "clap":  "........x.......", "weight": 0.3 }
+  ],
+  "fills": {
+    "phrase_bars": 4,
+    "probability": 0.45,
+    "types": ["tom_run", "kick_snare_burst", "snare_roll"],
+    "beats": [1.0, 2.0],
+    "section_end_probability": 0.9
+  },
+  "motif": {
+    "bars": 4,
+    "variations": ["exact", "last_bar", "exact", "last_half"],
+    "roles": ["rhythm_guitar", "lead", "melody"]
+  },
+  "humanize": { "timing": 0.005, "velocity": 0.04 },
+  "song_sections": [
+    {
+      "name": "intro", "bars": 8, "density": 0.6, "energy": 0.75,
+      "note": "Synth intro that filters open, then the band slams in",
+      "micro": [
+        { "name": "synth", "bars": 4, "density": 0.55, "energy": 0.5,
+          "mute": ["drums", "bass", "rhythm_guitar"], "electronic_pattern": "edm-build",
+          "progression": "dance-loop",
+          "automation": [{ "param": "filter", "shape": "ramp_up", "roles": ["pad", "chords", "lead"], "from": 0.1, "to": 1.0 }],
+          "note": "Trance-gated synth + arp, filter opening, electronic build" },
+        { "name": "slam", "bars": 4, "density": 0.9, "energy": 1.0, "riff_style": "open_chords",
+          "drum_pattern": "chorus-china", "crash": true, "fill": true, "double_track": "identical",
+          "note": "Full band hit" }
+      ]
+    },
+    {
+      "name": "verse", "bars": 16, "density": 0.85, "energy": 0.9,
+      "scale": "phrygian", "riff_style": "pedal_tone", "double_track": "variation",
+      "progression": ["verse-pedal", "verse-phrygian"],
+      "note": "Screamed verse: open-string chugs on drop C#, tempo-shifting riffs",
+      "micro": [
+        { "name": "A", "bars": 8, "density": 0.85, "drum_pattern": ["double-kick-drive", "thrash-skank"],
+          "mute": ["chords"], "note": "Guitars-only pedal-tone riff over double kick / skank beat" },
+        { "name": "B", "bars": 8, "density": 0.45, "energy": 1.0, "riff_style": "chug", "kick_follow": true,
+          "drum_pattern": "breakdown-crab", "double_track": "identical",
+          "electronic_pattern": "breakdown-reinforce", "chords_style": "follow_riff",
+          "note": "Mid-verse chug section — synth stabs and an electronic kick double the riff" }
+      ]
+    },
+    {
+      "name": "pre-chorus", "bars": 4, "density": 0.75, "energy": 0.85,
+      "riff_style": "open_chords", "progression": "pre-chorus-lift", "drum_pattern": "chorus-four",
+      "electronic_pattern": "edm-build", "fill": true, "double_track": "identical",
+      "automation": [{ "param": "filter", "shape": "ramp_up", "roles": ["pad", "chords"], "from": 0.3, "to": 1.0 }],
+      "note": "Build: filters open, snare build, four-on-the-floor"
+    },
+    {
+      "name": "chorus", "bars": 8, "density": 0.9, "energy": 1.0,
+      "scale": "minor", "riff_style": "open_chords", "progression": ["chorus-anthem", "chorus-trance"],
+      "double_track": "octave", "electronic_pattern": "edm-four",
+      "melody_style": { "melody": "sustained_hook" },
+      "automation": [{ "param": "volume", "shape": "pump", "roles": ["pad", "chords"], "depth": 0.45, "rate": "4" }],
+      "note": "Clean, auto-tuned hook; trance-gated supersaws pump against the kick; china on quarters",
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.9, "drum_pattern": "chorus-china", "mute": ["lead"],
+          "note": "Hook statement" },
+        { "name": "B", "bars": 4, "density": 0.95, "drum_pattern": "chorus-four",
+          "note": "Hook repeat, trance arp lead on top" }
+      ]
+    },
+    {
+      "name": "dance-break", "bars": 8, "density": 0.8, "energy": 0.8, "tempo_scale": 0.9,
+      "progression": "dance-loop", "electronic_pattern": "edm-four", "bass_style": "octave",
+      "mute": ["rhythm_guitar", "drums", "bass", "melody"],
+      "automation": [
+        { "param": "volume", "shape": "pump", "roles": ["pad", "chords", "synth_bass"], "depth": 0.3, "rate": "4" }
+      ],
+      "note": "Random euro-dance break: guitars out, four-on-the-floor drum machine, octave synth bass, trance arp, tempo drops"
+    },
+    {
+      "name": "build", "bars": 4, "density": 0.75, "energy": 0.9,
+      "riff_style": "power_strum", "drum_pattern": "chorus-four", "electronic_pattern": "edm-build",
+      "fill": true, "double_track": "identical", "mute": ["melody"],
+      "automation": [
+        { "param": "filter", "shape": "ramp_up", "roles": ["pad", "chords", "lead"], "from": 0.2, "to": 1.0 },
+        { "param": "pitch", "shape": "rise", "roles": ["pad"], "semitones": 12, "beats": 16 }
+      ],
+      "note": "Riser into the breakdown — filter sweep, pitch riser, snare build"
+    },
+    {
+      "name": "stop", "bars": 1, "density": 0.4, "energy": 1.0, "stop": true,
+      "automation": [{ "param": "pitch", "shape": "dive", "roles": ["chords", "pad", "synth_bass"], "semitones": 12, "beats": 3 }],
+      "note": "One hit, then the synths tape-stop down an octave into silence"
+    },
+    {
+      "name": "breakdown", "bars": 8, "density": 0.35, "energy": 1.0,
+      "scale": "phrygian", "riff_style": "chug", "kick_follow": true, "double_track": "identical",
+      "progression": ["breakdown-pedal", "breakdown-b2"], "drum_pattern": "breakdown-crab",
+      "electronic_pattern": "breakdown-reinforce", "chords_style": "follow_riff", "bass_style": "doubled",
+      "automation": [{ "param": "filter", "shape": "wobble", "roles": ["synth_bass"], "rate": "8", "from": 0.15, "to": 0.9 }],
+      "note": "Synth-heavy breakdown: chugs doubled by kick, electronic kick/clap, synth stabs and wobble bass",
+      "micro": [
+        { "name": "chug", "bars": 4, "density": 0.35, "note": "Chugs + stabs" },
+        { "name": "drop", "bars": 4, "density": 0.4, "drum_pattern": "breakdown-slow",
+          "note": "Heavier, more space; wobble bass carries the gaps" }
+      ]
+    },
+    {
+      "name": "outro", "bars": 4, "density": 0.4, "energy": 0.9,
+      "riff_style": "chug", "kick_follow": true, "progression": "breakdown-pedal",
+      "drum_pattern": "breakdown-slow", "fill": false, "double_track": "identical",
+      "automation": [{ "param": "filter", "shape": "ramp_down", "roles": ["pad"], "from": 0.1, "to": 1.0 }],
+      "note": "Last chugs, pad filters closed"
+    }
+  ],
+  "form": [
+    { "section": "intro" },
+    { "section": "verse" },
+    { "section": "pre-chorus" },
+    { "section": "chorus" },
+    { "section": "verse", "bars": 8 },
+    { "section": "pre-chorus", "probability": 0.6 },
+    { "section": "chorus" },
+    { "section": "dance-break", "probability": 0.8 },
+    { "section": "build" },
+    { "section": "stop" },
+    { "section": "breakdown" },
+    { "section": "breakdown", "bars": 4, "probability": 0.5, "tempo_scale": 0.75, "drum_pattern": "breakdown-slow" },
+    { "section": "chorus", "energy": 1.0, "drum_pattern": "chorus-four" },
+    { "section": "outro" }
+  ],
+  "instruments": [
+    { "role": "drums", "vst": "superior-drummer-3", "register": [22, 127], "style": "metalcore",
+      "velocity_range": [0.62, 0.98] },
+    { "role": "electronic_drums", "vst": "ujam-beatmaker", "register": [36, 51], "style": "edm",
+      "velocity_range": [0.6, 0.9] },
+    { "role": "rhythm_guitar", "gm": "distortion-guitar", "vst": "odin-iii", "register": [37, 80],
+      "style": "pedal_tone", "velocity_range": [0.55, 0.95],
+      "double_track": { "takes": 2, "mode": "variation", "variation_rate": 0.25 },
+      "articulations": { "pinch_harmonic_rate": 0.05 } },
+    { "role": "bass", "gm": "electric-bass-pick", "register": [25, 53], "style": "doubled",
+      "velocity_range": [0.75, 0.95] },
+    { "role": "synth_bass", "gm": "synth-bass-2", "vst": "serum-2", "register": [25, 49], "style": "wobble",
+      "velocity_range": [0.75, 0.95], "play_in": ["breakdown", "dance-break", "build", "stop"] },
+    { "role": "chords", "gm": "lead-2-sawtooth", "vst": "serum-2", "register": [56, 80], "style": "trance_gate",
+      "voicing": "triads", "velocity_range": [0.55, 0.8],
+      "play_in": ["intro", "verse", "pre-chorus", "chorus", "dance-break", "build", "stop", "breakdown"] },
+    { "role": "pad", "gm": "pad-3-polysynth", "vst": "vital", "register": [52, 79], "style": "sustained",
+      "voicing": "open_voicings", "velocity_range": [0.35, 0.55],
+      "play_in": ["intro", "pre-chorus", "chorus", "dance-break", "build", "stop", "outro"] },
+    { "role": "lead", "gm": "lead-2-sawtooth", "vst": "serum-2", "register": [64, 91], "style": "fast_arpeggio",
+      "velocity_range": [0.6, 0.85], "play_in": ["intro", "chorus", "dance-break", "build"] },
+    { "role": "melody", "gm": "synth-voice", "register": [61, 80], "style": "sustained_hook",
+      "velocity_range": [0.65, 0.9], "play_in": ["chorus"] }
+  ],
+  "velocity_ranges": {
+    "drums": [0.62, 0.98],
+    "electronic_drums": [0.6, 0.9],
+    "rhythm_guitar": [0.55, 0.95],
+    "bass": [0.75, 0.95],
+    "synth_bass": [0.75, 0.95],
+    "chords": [0.55, 0.8],
+    "pad": [0.35, 0.55],
+    "lead": [0.6, 0.85],
+    "melody": [0.65, 0.9]
+  },
+  "principles": [
+    "Metalcore chassis on drop C# — palm-muted open-string chugs, double-tracked guitars (tight-identical in breakdowns, varied in verses, octave-split in choruses)",
+    "Trance synths are a band member — gated supersaw stabs, arps and pads double the riff, pump against the kick and sweep open in every build",
+    "Scream / clean contrast: screamed riff verses vs. a bright, auto-tuned sing-along chorus over VI-VII-i-III with china on quarters",
+    "Synth-heavy breakdowns and random euro-dance breaks — kick and electronic layer double the chugs, wobble bass, tape-stop stops and tempo shifts"
+  ],
+  "references": [
+    { "artist": "Attack Attack!", "song": "Stick Stickly" },
+    { "artist": "Attack Attack!", "song": "Smokahontas" },
+    { "artist": "I See Stars", "song": "The Common Hours" },
+    { "artist": "Abandon All Ships", "song": "Take One Last Breath" },
+    { "artist": "Enter Shikari", "song": "Sorry, You're Not a Winner" }
+  ],
+  "research_sources": [
+    "https://en.wikipedia.org/wiki/Crabcore (term from late-2000s metalcore, popularized by Attack Attack!)",
+    "https://www.nme.com/blogs/nme-blogs/10-years-crabcore-metal-meme-2361620 (open-stringed chugging, scream-sing-scream structures)",
+    "https://www.halloftheelders.com/crabcore (synth-heavy breakdowns, auto-tuned choruses, tempo-shifting riffs, drop C/C#, euro-dance breaks, china in choruses)",
+    "https://en.wikipedia.org/wiki/Electronicore (metalcore + trance/electronica/dubstep; sequencers, synths, electronic drums; auto-tune)",
+    "https://www.melodigging.com/genre/electronicore (i-VI-III-VII; supersaws, arps, wobble bass, sidechained pads, synths doubling guitars, electronic layers reinforcing kick/snare, filter/pitch risers, four-on-the-floor and halftime drums, form incl. build/drop)",
+    "https://tunebat.com/Info/Stick-Stickly-Attack-Attack-/3QienJ6IMsUD8Mo24vITBg (Stick Stickly ~140 BPM, C# minor)",
+    "https://www.prosoundweb.com/in-the-studio-techniques-for-double-tracking-guitars/ (two performances panned L/R; copy-paste is not a double)",
+    "https://homerecording.com/bbs/threads/quad-tracking-guitars.334378/ (quad tracking: two per side; octave chords / different voicings on one side)",
+    "https://www.ujam.com/fileadmin/products/Manuals/Beatmaker-2.1_User_Guide_2.1.pdf (Beatmaker instrument + style key layouts)",
+    "https://xferrecords.com/web-manual/serum-2/using-knobs-and-sliders and https://xferrecords.com/forums/general/cc-for-serum (Serum MIDI Learn, CC1 only by default)"
+  ],
+  "sound_design": {
+    "synth_presets": {
+      "chords": "supersaw stab, trance gate (Serum 2)",
+      "pad": "wide supersaw pad, sidechained (Vital)",
+      "lead": "bright saw pluck arp (Serum 2)",
+      "synth_bass": "growl/wobble bass with LFO on filter (Serum 2)"
+    },
+    "drum_samples": {},
+    "fx_chain": ["noise_gate", "high_gain_amp", "cab_ir", "sidechain_compressor", "bus_glue", "limiter"],
+    "notes": "Drums: Superior Drummer 3 kit + UJAM Beatmaker (EDEN suits the four-on-the-floor/trance layer) on the electronic layer. Guitars: Odin III in drop C#, L/R takes. Synths: Serum 2 / Vital — MIDI Learn filter cutoff to CC74, volume to CC7, the wobble to the filter lane. Melody track is the clean (auto-tuned) vocal line — render it with a choir/vocal synth or use it as a guide for a singer."
+  },
+  "notes": "Researched profile. Introduced: per-section double-track modes, electronic drum layer, controller automation (filter sweeps, sidechain pump, wobble, pitch risers/dives), section tempo changes, synth stabs locked to the riff (chords_style follow_riff), trance gates and instruments[].play_in."
+}

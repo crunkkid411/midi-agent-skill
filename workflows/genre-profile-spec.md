@@ -31,6 +31,10 @@
 | `layer_order` | Which layer drives which (riff-first vs chord-first) |
 | `tuning` | Guitar/bass open strings (riff and bass pedal notes) |
 | `humanize` | Timing / velocity jitter |
+| section `automation` | Filter sweeps, sidechain pumps, wobbles, pitch risers/dives |
+| `instruments[].double_track` + section `double_track` | How double/quad-tracked takes relate per section |
+| `instruments[].play_in` | Which sections a part plays in |
+| section `tempo` / `tempo_scale` | Tempo changes |
 
 ## Scales
 
@@ -72,6 +76,11 @@ Each lane is a string. Length = resolution: 8 (8ths), 12 (8th triplets),
 16 (16ths), 24 (16th triplets), 32 (32nds — hat rolls).
 
 Characters: `x` hit, `.` rest, `g` ghost (low velocity), `a` accent.
+
+`"layer": "electronic"` marks a pattern for the `electronic_drums` role (a
+drum machine such as UJAM Beatmaker layered with the kit, or carrying a
+dance break). That layer plays only in sections that bind
+`electronic_pattern`, and it gets no automatic crashes or fills.
 
 Lanes: `kick`, `snare`, `snare_rimshot`, `snare_sidestick`, `clap`, `hh`,
 `hh_tight`, `hh_pedal`, `oh`, `crash`, `crash_2`, `china`, `ride`,
@@ -121,7 +130,7 @@ the longest option.
 
 Names: `intro`, `verse`, `pre-chorus`, `chorus`, `post-chorus`, `drop`,
 `build`, `bridge`, `break`, `breakdown`, `pre-breakdown`, `stop`, `solo`,
-`interlude`, `outro`, `loop`.
+`interlude`, `dance-break`, `outro`, `loop`.
 
 ```json
 {
@@ -150,10 +159,37 @@ Names: `intro`, `verse`, `pre-chorus`, `chorus`, `post-chorus`, `drop`,
 | `mute` | roles silent here |
 | `crash` | false suppresses the downbeat crash; true forces one on a micro downbeat |
 | `kick_follow` | force kick-follows-riff |
+| `electronic_pattern` | electronic drum layer pattern(s) here (silent where unset) |
+| `chords_style` | chords/pad style here; `riff_style`, `bass_style`, `melody_style` and `chords_style` may also be a `{role: style}` dict |
+| `double_track` | `identical`, `variation`, `octave` or `harmony` (how the takes relate here) |
+| `automation` | controller lanes over the section (see "Automation") |
+| `tempo` / `tempo_scale` | absolute BPM, or a multiple of the song tempo; the song tempo returns after |
 
 Micro-sections inherit the parent's bindings and override them. They are
 addressable by dotted name (`verse2.B`, `breakdown.drop`). Drums, riffs and
 melodies render per micro-section.
+
+## Automation
+
+```json
+"automation": [
+  { "param": "filter", "shape": "ramp_up", "roles": ["pad", "chords"], "from": 0.2, "to": 1.0 },
+  { "param": "volume", "shape": "pump",    "roles": ["pad"], "depth": 0.4, "rate": "4" },
+  { "param": "filter", "shape": "wobble",  "roles": ["synth_bass"], "rate": "8", "from": 0.15, "to": 0.9 },
+  { "param": "pitch",  "shape": "dive",    "roles": ["chords"], "semitones": 12, "beats": 3 }
+]
+```
+
+Params: `filter`, `resonance`, `volume`, `expression`, `mod_wheel`,
+`pitch`, `macro1`–`macro8`. Shapes:
+- `ramp_up` / `ramp_down`: builds, filtered intros and outros
+- `hold`: a constant `value`, optional `reset`
+- `pump`: sidechain ducking on every `rate` hit
+- `wobble`: LFO at `rate` (`4`, `8`, `8t`, `16`)
+- `dive` / `rise`: pitch tape-stop and riser; `semitones` is converted with the synth's bend range
+
+The instrument map turns params into CC numbers. General MIDI defaults:
+filter 74, volume 7, expression 11, mod wheel 1.
 
 ## Form
 
@@ -217,18 +253,29 @@ sits an octave below.
 }
 ```
 
-Roles: `drums`, `rhythm_guitar`, `bass`, `chords`, `pad`, `melody`, `lead`, `fx`.
+Roles: `drums`, `electronic_drums`, `rhythm_guitar`, `bass`, `synth_bass`, `chords`, `pad`, `melody`, `lead`, `fx`.
 
 | Role | Styles |
 |---|---|
 | rhythm_guitar | `pedal_tone`, `gallop`, `chug`, `open_chords`, `tremolo`, `power_strum`, `clean_arp` |
-| bass | `sustained_root`, `walking`, `kick_locked` (aliases `sub_808*`), `doubled`, `root_eighths`, `octave`, `arpeggio` |
-| chords / pad | `stab`, `sustained`, `sparse_held`, `strum8`, `pulse4` |
+| bass / synth_bass | `sustained_root`, `walking`, `kick_locked` (aliases `sub_808*`), `doubled`, `root_eighths`, `octave`, `arpeggio`, `wobble` |
+| chords / pad | `stab`, `sustained`, `sparse_held`, `strum8`, `pulse4`, `trance_gate`, `follow_riff` |
 | melody / lead | `pentatonic_sparse`, `fast_arpeggio`, `stab`, `sustained_hook`, `harmonized_thirds`, `riff_octave`, `tremolo_lead` |
 
 - `gm` must match a key in `midi_types/gm_instruments.py` (General MIDI fallback / preview).
 - `vst` names an instrument map in `instruments/`. The CLI's `--vst role=slug` overrides it for any genre.
-- `double_track` writes `<Name> L` / `<Name> R` takes, hard-panned and humanized independently.
+- `double_track`: multi-take recording. `true`, a mode, or `{"takes": 2|4, "mode": "identical|variation|octave|harmony", "variation_rate": 0.2}`.
+  - **identical**: same notes (tight breakdowns).
+  - **variation**: the right take changes some melodic notes and pinch harmonics.
+  - **octave**: the right take plays its open notes an octave up (choruses).
+  - **harmony**: the right take plays a diatonic 3rd up.
+
+  Palm-muted chugs stay identical in every mode. The section binding `double_track` overrides the mode. `takes: 4` adds an inner L2/R2 pair. Each take is humanized on its own.
+- `play_in`: section names the role plays in. It is muted everywhere else (a trance lead only in choruses, a clean vocal only in the chorus).
+- `articulations`:
+  - `pinch_harmonic_rate` (rhythm guitar)
+  - `glide_rate` (808 / synth-bass octave slides; glides overlap on mono synths)
+  - `gate` (16-step string for `trance_gate`)
 
 ## Velocity Ranges and Humanize
 
