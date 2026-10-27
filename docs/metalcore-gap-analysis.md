@@ -13,7 +13,29 @@ difference.
 
 ---
 
-## What the test render actually produced
+## Status: implemented
+
+All nine gaps below are now implemented. The analysis is kept as the record of why.
+
+| # | Gap | Fix |
+|---|---|---|
+| 1 | No rhythm guitar / riff | `composers/riff.py` (pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp). `voicing_style: power_chords` works. Chords are voiced in root position. |
+| 2 | Layer order backwards | profile `layer_order`; drum `kick_follow` (pattern or section); bass `doubled` / `kick_locked`; `bass.py` precedence bug fixed |
+| 3 | Breakdowns not first-class | `breakdown`, `stop`, `pre-breakdown`, … section names; per-section/micro `drum_pattern`, `progression`, `energy` (separate from density), `mute`, `stop` |
+| 4 | Drum vocabulary | any lane (crash, china, ride, ride_bell, splash, toms, …); pattern sequences per phrase; crash on section and groove changes; `fills` (8 fill types) |
+| 5 | No riff identity | `motif` (repeat with exact / last_bar / last_half / octave_drop / last_root); verse 2 replays verse 1's riff; melody now really reads the drum track |
+| 6 | Rigid form | profile `form` with optional slots, per-slot overrides and numbering; `--form`; micro-sections no longer squeezed into 1-bar slivers |
+| 7 | Tuning / register | `tuning` (drop_c, drop_b, 7/8-string, …): riff pedal on the open string, bass an octave below |
+| 8 | Per-section scale | section `scale` binding, resolved into the shared harmony timeline |
+| 9 | Articulation / output | `instruments/` maps (Superior Drummer 3, Odin III, GM, template); note `articulation` + `drum` lanes; held/latching keyswitches, velocity bands; `--vst role=slug` for any genre; `--split-tracks` |
+
+Side bugs fixed as well: lo-fi's `fingered-bass` (rendered as piano) is now
+`electric-bass-finger`, and notes longer than a whole note were truncated
+to 4 beats. Covered by `tests/test_pipeline.py`.
+
+---
+
+## What the test render actually produced (before the fixes)
 
 `compose_from_profile.py --genres metalcore --bars 40 --seed 1`:
 

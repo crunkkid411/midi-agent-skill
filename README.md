@@ -18,6 +18,9 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 - **Genre blending** — combine 2-4 profiles with weights to compose in hybrid styles.
 - **Micro-section addressability** — request "add a drum break in verse 2 B" and regenerate exactly those 4 bars without disturbing the rest of the song.
 - **Layer overrides** — user-provided ideas (a bassline, a chord progression) slot directly into the pipeline alongside generated parts. Human-AI collaboration on the same composition.
+- **Riff-first genres** — a rhythm-guitar composer (pedal tone, gallop, breakdown chugs, power chords on the tuning's open string). Profiles can reorder layers so the kick and bass lock to the riff.
+- **Section-level control** — every section and micro-section can bind its own groove (or a sequence per phrase), progression, scale, styles, mutes and stops. Form templates have optional slots. Fills land at phrase ends. Motifs repeat with variation.
+- **Any VST, any genre** — instrument maps translate drum lanes and articulations for Superior Drummer 3, Solemn Tones Odin III (Swift Mode velocity bands + held keyswitches), General MIDI or your own map, with per-track MIDI export for DAW templates.
 
 ---
 
@@ -36,16 +39,19 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 ├─ genres/                           # Cached genre profiles (JSON)
 │   ├─ _schema.json
 │   ├─ lo-fi-hip-hop.json
-│   ├─ metalcore.json
+│   ├─ metalcore.json                # Uses every profile field
 │   └─ scenecore.json                # Seeded from Ace-Step DAW reference
+├─ instruments/                      # VST maps: superior-drummer-3, odin-iii, gm-drums, _template
 ├─ composers/                        # Deterministic Python builders
-│   ├─ theory.py                     # Scales, Roman numerals, drum mapping
-│   ├─ profile.py                    # Load / blend profiles
-│   ├─ structure.py                  # Bars → sections (incl. micro)
-│   ├─ chords.py
-│   ├─ drums.py                      # Honors per-section density
-│   ├─ bass.py                       # Locks to drum kicks for 808 styles
-│   ├─ melody.py
+│   ├─ theory.py                     # Scales, Roman numerals, voicings, tunings
+│   ├─ profile.py                    # Load / blend profiles, section bindings
+│   ├─ structure.py                  # Form / bars → sections (incl. micro)
+│   ├─ harmony.py                    # Chord timeline + motif repetition
+│   ├─ chords.py                     # Chords + pads
+│   ├─ riff.py                       # Rhythm guitar riffs
+│   ├─ drums.py                      # Bound grooves, fills, crashes, kick_follow
+│   ├─ bass.py                       # Sustained / walking / kick-locked / doubled
+│   ├─ melody.py                     # Melody + lead
 │   └─ pipeline.py                   # Lego Pipeline + section regeneration
 ├─ skills/                           # Entry-point scripts
 │   ├─ compose_from_profile.py       # Main CLI
@@ -83,6 +89,13 @@ python skills/compose_from_profile.py \
 python skills/compose_from_profile.py \
     --genres scenecore --resume plans/hybrid.composition.json \
     --regenerate verse2.B --layers drums --seed 17
+
+# Full metalcore song for Superior Drummer 3 + Odin III, one .mid per track
+python skills/compose_from_profile.py --genres metalcore --form \
+    --vst drums=superior-drummer-3,rhythm_guitar=odin-iii --split-tracks --title riffs
+
+# Tests
+python -m unittest discover -s tests
 ```
 
 Output goes to `plans/<title>.composition.json` and `output/<title>.mid`.

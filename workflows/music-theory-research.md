@@ -47,6 +47,23 @@ For a genre you need to understand:
    - WebSearch: `"{genre}" instrumentation typical sounds`
    - WebSearch: `"{genre}" production techniques mix`
 
+5. **Find what drives what** (fills `layer_order`, `tuning`, riff/bass styles):
+   - Is the genre chord-led (pop, lo-fi, EDM) or riff-led (metalcore, djent, thrash, punk)?
+   - WebSearch: `"{genre}" guitar tuning riff techniques palm mute`
+   - WebSearch: `"{genre}" bass follows kick OR guitar`
+   - Riff-led → `rhythm_guitar` first in `layer_order`, `kick_follow` where the kick doubles the riff, bass `doubled`.
+
+6. **Find drum vocabulary beyond the main groove** (fills `drum_patterns`, `fills`):
+   - WebSearch: `"{genre}" drum fills cymbal patterns` (crash/china/ride? hat rolls? toms?)
+   - Note which groove each section uses. Verses, choruses and breakdowns usually differ.
+
+7. **Find the full song form** (fills `form`):
+   - Map 2-3 reference songs section by section, including one-off sections (stop, pre-breakdown, build, final chorus) and which ones are optional.
+
+8. **Find the target instruments** (fills `instruments[].vst` and `instruments/<vst>.json` when the user names a VST):
+   - WebSearch: `"{vst}" MIDI map keyswitches articulations manual`
+   - Record note maps, keyswitch behaviour (latching or held), velocity-switched articulations and playable range. Mark anything unverified in the map's `notes`.
+
 ### What to Extract
 
 For each genre, identify:
@@ -54,8 +71,10 @@ For each genre, identify:
 - **Chord Language**: triads? 7ths? 9ths? Power chords? Open voicings?
 - **Rhythmic Feel**: straight 8ths, swing, syncopated? What's the kick/snare pattern?
 - **Texture**: sparse or dense? Which instruments? Which register?
-- **Form**: how long are sections? Are there sub-sections (A/B, drop, break)? What's the energy curve?
+- **Form**: how long are sections? Are there sub-sections (A/B, drop, break)? What's the energy curve? Which sections are optional or one-offs?
 - **BPM range**: lower and upper bounds.
+- **Per-section detail**: for each section, record the groove, progression, scale, which parts play (mutes), density vs energy, and the fills and stops between sections. These become section bindings.
+- **Repetition**: how long is the core idea (2-bar riff? 4-bar hook?) and how does it vary when repeated? This becomes `motif`.
 
 ---
 
@@ -141,12 +160,15 @@ in the composition brief and in the self-evaluation step.
 
 ## Phase 4: CAPTURE — Write the Profile
 
-1. Copy `genres/lo-fi-hip-hop.json` as a starting template.
+1. Copy `genres/metalcore.json` (riff-led) or `genres/lo-fi-hip-hop.json` (chord-led) as a starting template.
 2. Validate against `genres/_schema.json`.
-3. Use lowercase-hyphenated slug for `name` and filename.
-4. Add aliases for spelling variants (`"lofi"`, `"lo-fi"`, etc).
-5. Cite at least 2 specific references in `references[]`.
-6. Note research sources in `research_sources[]` (URLs, books, podcast eps).
+3. Granularity checklist — every profile needs: named progressions, ≥4 drum patterns,
+   section bindings (`drum_pattern`, `progression`, `mute`, …), `form`, `fills`, `motif`,
+   `humanize`; plus `tuning` + `layer_order` for guitar-driven genres.
+4. Use lowercase-hyphenated slug for `name` and filename.
+5. Add aliases for spelling variants (`"lofi"`, `"lo-fi"`, etc).
+6. Cite at least 2 specific references in `references[]`.
+7. Note research sources in `research_sources[]` (URLs, books, podcast eps).
 
 ---
 
@@ -156,10 +178,14 @@ Before committing, sanity-check by composing a short loop:
 
 ```bash
 python skills/compose_from_profile.py --genres <slug> --bars 8 --title test_<slug>
+python skills/compose_from_profile.py --genres <slug> --form --title test_<slug>_full
+python -m unittest discover -s tests
 ```
 
 Then:
-1. Listen to `output/test_<slug>.mid` (any GM-capable player works).
+1. Listen to `output/test_<slug>.mid` (any GM-capable player works), and inspect
+   `plans/test_<slug>_full.composition.json` per section: does each section play
+   its bound groove, do the mutes and stops land, does the kick lock to the riff where it should?
 2. Compare against your reference songs. Does it pass the "blind genre test"?
 3. If not, iterate: tweak chord weights, drum pattern, register, voicing style. Recompose.
 4. When it passes, commit the profile.

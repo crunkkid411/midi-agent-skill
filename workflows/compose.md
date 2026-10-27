@@ -82,7 +82,7 @@ file in `plans/<title>.md`:
 
 ## Tracks
 - Drums (channel 9, GM kit)
-- Bass (fingered-bass, sustained roots)
+- Bass (electric-bass-finger, sustained roots)
 - Chords (electric-piano-1, sparse held)
 - Melody (vibraphone, pentatonic sparse)
 ```
@@ -106,6 +106,23 @@ python skills/compose_from_profile.py \
     --genres scenecore,witch-house,shoegaze \
     --weights 0.5,0.3,0.2 \
     --bars 8 --title hybrid_song
+```
+
+For a full song, walk the profile's `form` template (intro → verse → … →
+outro, optional slots rolled with the seed):
+
+```bash
+python skills/compose_from_profile.py --genres metalcore --form --seed 42 --title my_song
+```
+
+To render for specific instruments, target any instrument map in
+`instruments/` from any genre (`--list-vsts` shows them). `--split-tracks`
+also writes one .mid per track for dragging into a DAW template:
+
+```bash
+python skills/compose_from_profile.py --genres metalcore --form \
+    --vst drums=superior-drummer-3,rhythm_guitar=odin-iii,lead=odin-iii \
+    --split-tracks --title my_song
 ```
 
 For user-provided ideas (e.g. they wrote a bass line in `plans/my-bass.json`):
@@ -149,7 +166,9 @@ everything else untouched. You can also temporarily edit the profile (e.g.
 swap in a `halftime-drop` pattern weight) and regenerate just that section.
 
 For broader changes:
-- **Different drum pattern in one section** → edit the profile, regenerate that section.
+- **Different drum pattern in one section** → set that section's `drum_pattern` binding in the profile (a name, or a list for one pattern per phrase), regenerate that section.
+- **Different riff / bass / melody feel in one section** → set `riff_style`, `bass_style`, `melody_style`, `scale` or `progression` on the section or micro-section.
+- **Silence a part somewhere** → add the role to the section's `mute` list. A one-hit pause → a section with `stop: true`.
 - **Add a counter-melody** → write a Track JSON, pass it as `--override-lead`.
 - **Change BPM** → re-run with `--bpm`. Note density may need adjustment.
 - **Change key** → re-run with `--key 'F minor'`.
@@ -187,8 +206,8 @@ Then research per Step 1.
 ### "Add a drum break in verse 2's B section"
 
 This is the canonical micro-section workflow:
-1. Either swap the profile's drum pattern weights (favor `halftime-drop` or `break`-named patterns), or write a custom drum track JSON.
-2. Run with `--resume`, `--regenerate verse2.B`, `--layers drums`.
+1. Set `"drum_pattern": "halftime-drop"` (or any pattern) on the verse's `B` micro-section — or write a custom drum track JSON.
+2. Run with `--resume`, `--regenerate verse2.B`, `--layers drums`. The regenerated section keeps its bindings (energy, mutes, fills).
 
 ---
 
@@ -197,6 +216,6 @@ This is the canonical micro-section workflow:
 - **Pre-built song templates** — research the genre once, cache the profile, generate forever.
 - **Per-note AI composition** — that's expensive and rate-limited. The pipeline is deterministic.
 - **Strudel/TidalCycles output** — that's the Ace-Step DAW. Here we emit Python composition JSON → MIDI.
-- **Mixing, mastering, sound design** — `sound_design` field is reserved for future synth-preset and sample-management work.
+- **Mixing, mastering, sound design** — the `sound_design` field records preset/FX notes; instrument maps (`instruments/`) handle note mapping and articulations, not tone.
 
 The process is the value. The process adapts to any genre, any style, any reference. A template only works for the exact case it was written for.

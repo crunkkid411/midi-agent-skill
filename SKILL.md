@@ -1,6 +1,6 @@
 ---
 name: midi-agent-skill
-description: Research-first MIDI composition. The agent researches a genre once (cached as a JSON profile), then deterministic Python composers blend profiles and emit MIDI via a context-aware Lego Pipeline (chords → drums → bass → melody → lead). Use when composing music, blending genres, or iterating on songs section-by-section.
+description: Research-first MIDI composition. The agent researches a genre once (cached as a JSON profile), then deterministic Python composers blend profiles and emit MIDI via a context-aware Lego Pipeline (chords/riff → drums → bass → melody → lead), rendered for any VST (Superior Drummer 3, Odin III, General MIDI, ...). Use when composing music, blending genres, or iterating on songs section-by-section.
 license: MIT
 ---
 
@@ -34,10 +34,14 @@ python skills/compose_from_profile.py \
     --bars 8 --title song
       │
       ├─ load + blend profiles
-      ├─ Lego Pipeline: structure → chords → drums → bass → melody → lead
+      ├─ structure (form template, section bindings) → harmony timeline
+      ├─ Lego Pipeline in the profile's layer_order, e.g.
+      │     chords → drums → bass → melody → lead          (chord-led genres)
+      │     rhythm_guitar → drums → bass → lead            (riff-led: kick + bass lock to the riff)
       │   (each layer reads previous layers — context-aware sequential generation)
       ├─ write plans/song.composition.json
       └─ render output/song.mid via skills/generate_midi.py
+          (through each track's instrument map: SD3 note map, Odin III articulations, GM, ...)
       │
       ▼
 Agent evaluates against the brief's principles; iterates by editing the
@@ -62,17 +66,25 @@ midi-agent-skill/
 ├── genres/                            ← cached genre profiles (JSON)
 │   ├── _schema.json                   ← JSON Schema for profiles
 │   ├── README.md
-│   ├── lo-fi-hip-hop.json             ← seeded
-│   ├── metalcore.json                 ← researched (web)
-│   └── scenecore.json                 ← seeded from Ace-Step DAW reference
+│   ├── lo-fi-hip-hop.json             ← seeded, expanded
+│   ├── metalcore.json                 ← researched (web) — uses every field
+│   └── scenecore.json                 ← seeded from Ace-Step DAW reference, expanded
+├── instruments/                       ← VST / instrument maps (genre-independent)
+│   ├── README.md
+│   ├── superior-drummer-3.json        ← Toontrack default note map
+│   ├── odin-iii.json                  ← Solemn Tones Odin III (Swift Mode + keyswitches)
+│   ├── gm-drums.json
+│   └── _template.json
 ├── composers/                         ← deterministic Python builders
-│   ├── theory.py                      ← scales, Roman numerals, drum mapping
-│   ├── profile.py                     ← load / blend / query profiles
-│   ├── structure.py                   ← bars → sections (incl. micro)
-│   ├── chords.py
-│   ├── drums.py                       ← honors per-section density
-│   ├── bass.py                        ← locks to drum kicks for 808 styles
-│   ├── melody.py                      ← used for both melody and lead
+│   ├── theory.py                      ← scales, Roman numerals, voicings, tunings, drum lanes
+│   ├── profile.py                     ← load / blend / query profiles + section bindings
+│   ├── structure.py                   ← form / bars → sections (incl. micro) with bindings
+│   ├── harmony.py                     ← shared chord timeline + motif repetition
+│   ├── chords.py                      ← chords + pad (power chords, root-position voicing)
+│   ├── riff.py                        ← rhythm guitar riffs (pedal tone, gallop, chug, ...)
+│   ├── drums.py                       ← bound patterns, any lanes, fills, crashes, kick_follow
+│   ├── bass.py                        ← sustained / walking / kick-locked / doubled / ...
+│   ├── melody.py                      ← melody + lead (hears drums, repeats motifs)
 │   └── pipeline.py                    ← Lego Pipeline + section regeneration
 ├── skills/
 │   ├── compose_from_profile.py        ← main CLI entry point
@@ -83,7 +95,9 @@ midi-agent-skill/
 ├── midi_types/
 │   ├── music.py                       ← Composition, Track, Note, Section
 │   ├── genre_profile.py               ← profile dataclasses
+│   ├── instrument_map.py              ← VST map loader
 │   └── gm_instruments.py
+├── tests/test_pipeline.py             ← python -m unittest discover -s tests
 ├── resources/                         ← lookup-only theory references
 ├── plans/                             ← per-song briefs + composition.json
 ├── claude_code/                       ← Ace-Step DAW reference (read-only; will be deleted later)
@@ -109,9 +123,14 @@ python skills/compose_from_profile.py \
 python skills/compose_from_profile.py \
     --genres scenecore --resume plans/hybrid.composition.json \
     --regenerate verse2.B --layers drums --seed 17
+
+# Full song from the profile's form, rendered for VSTs, one .mid per track
+python skills/compose_from_profile.py --genres metalcore --form \
+    --vst drums=superior-drummer-3,rhythm_guitar=odin-iii --split-tracks --title riffs
 ```
 
-Output goes to `plans/<title>.composition.json` and `output/<title>.mid`.
+Output goes to `plans/<title>.composition.json` and `output/<title>.mid`
+(plus `output/<title>/NN-<track>.mid` with `--split-tracks`).
 
 ---
 
@@ -149,7 +168,8 @@ preserved.
 ## The Lego Pipeline (Context-Aware Sequential Generation)
 
 ```
-structure → chords → drums → bass (locks to drums) → melody (reads chords + drums) → lead
+structure → harmony → chords → drums → bass (locks to drums) → melody (reads chords + drums) → lead
+structure → harmony → rhythm_guitar → drums (kick follows riff) → bass (doubles riff) → lead   ← riff-led profiles
 ```
 
 Each layer is built knowing the cumulative result of all previous layers.
@@ -170,19 +190,28 @@ Full details: `workflows/lego-pipeline.md`.
 ## Adding a New Genre
 
 1. Read `workflows/music-theory-research.md`.
-2. Run 4-6 web searches (chord progressions, drum patterns, structure, references).
-3. Fill `genres/<slug>.json` per `genres/_schema.json` and `workflows/genre-profile-spec.md`.
-4. Compose an 8-bar test loop. Listen. Iterate the profile until it sounds right.
+2. Run 6-8 web searches (chord progressions, drum patterns and fills, form, riffs/tuning, references).
+3. Fill `genres/<slug>.json` per `genres/_schema.json` and `workflows/genre-profile-spec.md`,
+   including the granularity fields: named progressions, ≥4 drum patterns, section bindings,
+   `form`, `fills`, `motif`, `humanize` (+ `tuning`, `layer_order` for guitar-led genres).
+4. Compose an 8-bar loop and a `--form` render. Inspect per section. Run the tests.
 5. Commit. The profile is now cached for every future composition in that style.
+
+## Targeting VSTs
+
+Instrument maps in `instruments/` are genre-independent. Composers write
+drum lanes and articulations (palm mute, pinch harmonic, …). The renderer
+maps them per track: kit notes for Superior Drummer 3, velocity bands and
+held keyswitches for Odin III, General MIDI otherwise. Set a role's `vst`
+in the profile, or `--vst role=slug` for any genre. See `instruments/README.md`.
 
 ---
 
-## Sound Design (Forward-Compat)
+## Sound Design
 
 Profiles include a `sound_design` field for synth presets, sample paths,
-and FX chains. Composers ignore it today but research notes about preset
-choices belong here so the data is captured. Future work: user-provided
-drum sample swaps, synth-preset round-trip with external tooling.
+FX chains and the VSTs/kits the profile was tuned for. Note mapping and
+articulations live in `instruments/`, tone lives in your DAW.
 
 ---
 
@@ -190,7 +219,7 @@ drum sample swaps, synth-preset round-trip with external tooling.
 
 - **Per-note AI generation** — too expensive, rate-limited. The pipeline is deterministic.
 - **Strudel / TidalCycles output** — that's the Ace-Step DAW. Here we emit composition JSON → MIDI.
-- **Mixing / mastering / sound design** — `sound_design` field is a placeholder.
+- **Mixing / mastering / tone** — instrument maps handle notes and articulations; the sound is the plugin's.
 - **Pre-built song templates** — research the genre once, cache the profile, generate forever.
 
 ---
@@ -215,9 +244,9 @@ generate_midi_from_dict({
 })
 ```
 
-New optional fields: `velocity` (0.0-1.0) and `start` (beats) per note;
-`is_drum` per track for GM channel-9 drum routing; `sections` and `key`
-on the composition.
+New optional fields: `velocity` (0.0-1.0), `start` (beats), `articulation`
+and `drum` (lane) per note; `is_drum`, `role`, `vst` and `pan` per track;
+`sections` (with `bindings`), `key` and `tuning` on the composition.
 
 ---
 

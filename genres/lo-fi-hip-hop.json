@@ -5,99 +5,139 @@
   "default_key": "D Dorian",
   "common_keys": ["D Dorian", "F Dorian", "C minor", "A minor"],
   "scales": ["dorian", "minor_pentatonic", "minor"],
+  "layer_order": ["chords", "drums", "bass", "pad", "melody", "lead"],
   "chord_progressions": [
-    {
-      "roman": ["i9", "iv9", "iiø7", "V7b9"],
-      "weight": 1.0,
-      "source": "Nujabes - Feather (jazz minor cycle)",
-      "bars_per_chord": 1.0
-    },
-    {
-      "roman": ["i7", "VI7", "ii7", "V7"],
-      "weight": 0.7,
-      "source": "Common ii-V minor cycle",
-      "bars_per_chord": 1.0
-    },
-    {
-      "roman": ["i9", "IVmaj9"],
-      "weight": 0.6,
-      "source": "Two-chord chillhop loop",
-      "bars_per_chord": 2.0
-    }
+    { "name": "feather-cycle", "roman": ["i9", "iv9", "iiø7", "V7b9"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "Nujabes - Feather (jazz minor cycle)" },
+    { "name": "minor-ii-v", "roman": ["i7", "VI7", "ii7", "V7"], "weight": 0.7, "bars_per_chord": 1.0,
+      "source": "Common ii-V minor cycle" },
+    { "name": "two-chord-vamp", "roman": ["i9", "IV9"], "weight": 0.6, "bars_per_chord": 2.0,
+      "source": "Two-chord Dorian chillhop vamp (i9 - IV9)" },
+    { "name": "bridge-lift", "roman": ["VI9", "VII9", "i9", "i9"], "weight": 0.4, "bars_per_chord": 1.0,
+      "source": "Bridge lift through bVI and bVII back to the tonic" },
+    { "name": "intro-hold", "roman": ["i9", "IV9"], "weight": 0.2, "bars_per_chord": 2.0,
+      "source": "Filtered intro vamp" }
   ],
   "voicing_style": "extended_7th_9th",
   "drum_patterns": [
-    {
-      "name": "boom-bap-lazy",
+    { "name": "boom-bap-lazy", "swing": 0.58, "ghost_density": 0.3, "weight": 1.0,
       "kick":  "x.....x...x.....",
       "snare": "....x.......x...",
       "hh":    "x.x.x.x.x.x.x.x.",
-      "oh":    "............x...",
-      "swing": 0.58,
-      "ghost_density": 0.3,
-      "weight": 1.0
-    },
-    {
-      "name": "halftime-dusty",
+      "oh":    "............x..." },
+    { "name": "boom-bap-rim", "swing": 0.6, "ghost_density": 0.35, "weight": 0.7,
+      "kick":  "x......xx.......",
+      "snare_sidestick": "....x.......x...",
+      "hh":    "x.xgx.x.x.xgx.x.",
+      "shaker": "..x...x...x...x." },
+    { "name": "dilla-drag", "swing": 0.66, "ghost_density": 0.25, "weight": 0.5,
+      "kick":  "x.....x..x..x...",
+      "snare": "....x.......x..g",
+      "hh":    "x.x.x.x.x.x.x.x." },
+    { "name": "halftime-dusty", "swing": 0.6, "ghost_density": 0.4, "weight": 0.6,
       "kick":  "x.......x.......",
       "snare": "........x.......",
+      "hh":    "x.x.x.x.x.x.x.x." },
+    { "name": "hats-only", "swing": 0.6, "weight": 0.1,
       "hh":    "x.x.x.x.x.x.x.x.",
-      "swing": 0.6,
-      "ghost_density": 0.4,
-      "weight": 0.6
-    }
+      "kick":  "x..............." }
   ],
+  "fills": {
+    "phrase_bars": 4,
+    "probability": 0.35,
+    "types": ["drop_out", "open_hat", "snare_roll"],
+    "beats": [1.0],
+    "section_end_probability": 0.7
+  },
+  "motif": {
+    "bars": 2,
+    "variations": ["exact", "last_bar", "exact", "last_half"],
+    "roles": ["melody", "lead"]
+  },
+  "humanize": { "timing": 0.03, "velocity": 0.06 },
   "song_sections": [
     {
-      "name": "intro",
-      "bars": 4,
-      "density": 0.4,
+      "name": "intro", "bars": 4, "density": 0.4, "energy": 0.3,
+      "progression": "intro-hold", "mute": ["drums", "bass", "melody"],
       "note": "Filtered chords, vinyl crackle, no drums",
       "micro": []
     },
     {
-      "name": "loop",
-      "bars": 8,
-      "density": 0.75,
+      "name": "loop", "bars": 8, "density": 0.75, "energy": 0.6,
+      "progression": ["feather-cycle", "minor-ii-v", "two-chord-vamp"],
       "micro": [
-        { "name": "A", "bars": 4, "density": 0.7, "note": "Drums + bass + chords, no melody" },
-        { "name": "B", "bars": 4, "density": 0.85, "note": "Add melodic lead" }
+        { "name": "A", "bars": 4, "density": 0.7, "mute": ["melody", "pad"],
+          "drum_pattern": ["boom-bap-lazy", "boom-bap-rim"], "note": "Drums + bass + chords, no melody" },
+        { "name": "B", "bars": 4, "density": 0.85, "note": "Add the melodic lead and a warm pad" }
       ]
     },
     {
-      "name": "outro",
-      "bars": 4,
-      "density": 0.3,
+      "name": "bridge", "bars": 4, "density": 0.55, "energy": 0.45,
+      "progression": "bridge-lift", "drum_pattern": "halftime-dusty", "scale": "aeolian",
+      "bass_style": "walking",
+      "note": "Half-time break, chords open up, bass walks"
+    },
+    {
+      "name": "break", "bars": 2, "density": 0.35, "energy": 0.3,
+      "drum_pattern": "hats-only", "mute": ["bass", "melody"], "fill": false,
+      "note": "Drums and bass drop out — just hats and chords before the loop returns"
+    },
+    {
+      "name": "outro", "bars": 4, "density": 0.3, "energy": 0.25,
+      "progression": "intro-hold", "drum_pattern": "halftime-dusty", "mute": ["melody"],
       "note": "Strip to chords + filtered drums"
     }
   ],
+  "form": [
+    { "section": "intro" },
+    { "section": "loop" },
+    { "section": "loop" },
+    { "section": "break", "probability": 0.6 },
+    { "section": "bridge", "probability": 0.7 },
+    { "section": "loop" },
+    { "section": "loop", "probability": 0.5 },
+    { "section": "outro" }
+  ],
   "instruments": [
     { "role": "drums", "register": [35, 81], "style": "boom_bap_lazy", "velocity_range": [0.3, 0.8] },
-    { "role": "bass", "gm": "fingered-bass", "register": [36, 50], "style": "sustained_root", "velocity_range": [0.5, 0.7] },
-    { "role": "chords", "gm": "electric-piano-1", "register": [55, 75], "style": "sparse_held", "velocity_range": [0.35, 0.55] },
-    { "role": "melody", "gm": "vibraphone", "register": [67, 84], "style": "pentatonic_sparse", "velocity_range": [0.45, 0.7] }
+    { "role": "bass", "gm": "electric-bass-finger", "register": [33, 52], "style": "sustained_root",
+      "velocity_range": [0.5, 0.7] },
+    { "role": "chords", "gm": "electric-piano-1", "register": [50, 76], "style": "sparse_held",
+      "velocity_range": [0.35, 0.55] },
+    { "role": "pad", "gm": "pad-2-warm", "register": [55, 79], "style": "sustained",
+      "voicing": "open_voicings", "velocity_range": [0.2, 0.35] },
+    { "role": "melody", "gm": "vibraphone", "register": [67, 84], "style": "pentatonic_sparse",
+      "velocity_range": [0.45, 0.7] }
   ],
   "velocity_ranges": {
     "drums": [0.3, 0.8],
     "chords": [0.35, 0.55],
+    "pad": [0.2, 0.35],
     "melody": [0.45, 0.7],
     "bass": [0.5, 0.7]
   },
   "principles": [
     "Jazz-rooted harmony with 7th/9th voicings and Dorian color (bIII, ii-V minor cycles)",
-    "Laid-back boom-bap drums slightly behind the beat with ghost notes and light swing",
-    "Sparse, pentatonic melody with lots of rests and space — the texture breathes",
-    "Warm, dusty texture — Rhodes/EP chords, sub bass, vinyl-style imperfection"
+    "Laid-back boom-bap drums slightly behind the beat with ghost notes and 55-66% swing; rim/shaker variations",
+    "Sparse, repeating pentatonic melody with lots of rests and space — the texture breathes",
+    "Arrangement by subtraction — intro without drums, drops where the hats play alone, half-time bridge, filtered outro"
   ],
   "references": [
     { "artist": "Nujabes", "song": "Feather" },
-    { "artist": "J Dilla", "song": "Donuts (Time, the Donut of the Heart)" }
+    { "artist": "J Dilla", "song": "Donuts (Time, the Donut of the Heart)" },
+    { "artist": "Idealism", "song": "both of us" }
   ],
-  "research_sources": [],
+  "research_sources": [
+    "https://www.native-instruments.com/blogs/blog/lo-fi-hip-hop-beats (intro, loop that builds, breakdown where elements drop out)",
+    "https://www.loopmasters.com/articles/4298-How-To-Make-Chilled-LoFi-Hip-Hop-Beats-Sounds-Samples-Loops (swung ghost notes, kick ghosts near bar end)",
+    "https://violetrecording.com/how-to-make-lofi-beats/ (55-70% swing, 75-85 BPM sweet spot)",
+    "https://beatkey.pages.dev/how-to-make-lofi-hip-hop-music (strip drums for a bridge, mute hats for a bar)"
+  ],
   "sound_design": {
     "synth_presets": {},
     "drum_samples": {},
-    "fx_chain": []
+    "fx_chain": ["vinyl_crackle", "tape_saturation", "lowpass_8k", "sidechain_light"],
+    "notes": "Any drum VST works via --vst drums=<map> (e.g. superior-drummer-3 with a vintage/jazz kit); keep velocities low and swung."
   },
-  "notes": "Default seed profile. Boom-bap pattern is 16-step."
+  "notes": "Seed profile, expanded with form/fills/motif/section bindings. Bass uses the real GM slug electric-bass-finger (the old 'fingered-bass' resolved to piano)."
 }

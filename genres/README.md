@@ -38,6 +38,12 @@ See `_schema.json` for the full JSON schema. Required fields:
 - `principles` (2-4 distilled human-readable rules — drives composer behavior
   AND the agent's self-evaluation step)
 
+Granularity fields every profile should carry: named progressions, ≥4 drum
+patterns (any lanes: crash, china, ride, toms, …), section/micro bindings
+(`drum_pattern`, `progression`, `scale`, `*_style`, `mute`, `stop`, `energy`),
+`form`, `fills`, `motif`, `humanize`; plus `tuning` and `layer_order` for
+guitar-driven genres. See `workflows/genre-profile-spec.md`.
+
 ## Micro-sections — the nuance layer
 
 The `micro` array under each section is what makes addressing things like
@@ -59,11 +65,12 @@ is a sub-block with its own density and note, addressable by dotted name:
 When the user asks for "a drum break in verse 2 B", the composer can target
 exactly those 4 bars without disturbing anything else.
 
-## Sound design (forward-compat)
+## Sound design and VSTs
 
-The `sound_design` field is reserved for future use: synth presets, paths to
-user-provided drum samples, FX chains. Composers ignore it today but writers
-should fill it in when known so the data is captured.
+`sound_design` records synth presets, sample paths, FX chains and the kits
+or VSTs the profile was tuned for. Which instrument a role renders on is
+`instruments[].vst` (a map in `instruments/`). Any VST can be used with any
+genre via `--vst role=slug`.
 
 ```json
 "sound_design": {
@@ -87,5 +94,5 @@ should fill it in when known so the data is captured.
 ## Seeded profiles
 
 - `scenecore.json` — ported from the Ace-Step DAW reference plan (140 BPM, A minor, trap/breakcore drums, hyperpop stabs).
-- `lo-fi-hip-hop.json` — Nujabes/J Dilla-style boom-bap chillhop default.
-- `metalcore.json` — Killswitch Engage / August Burns Red-style metalcore (130-170 BPM, C minor / Phrygian, double-kick verses, clean chorus, half-time breakdown).
+- `lo-fi-hip-hop.json` — Nujabes/J Dilla-style boom-bap chillhop (swung rim/shaker variants, hats-only drops, half-time bridge, motif-based vibraphone).
+- `metalcore.json` — Killswitch Engage / August Burns Red / Parkway Drive-style metalcore. Drop C, riff-first layer order, pedal-tone/gallop/chug riffs. Double-kick, skank, gallop and blast verses, a stop before a kick-follows-riff breakdown, and a final chorus. Targets Superior Drummer 3 and Odin III (double-tracked).

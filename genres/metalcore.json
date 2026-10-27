@@ -5,140 +5,205 @@
   "default_key": "C minor",
   "common_keys": ["C minor", "B minor", "C# minor", "D minor"],
   "scales": ["minor", "phrygian", "harmonic_minor", "minor_pentatonic"],
+  "tuning": "drop_c",
+  "layer_order": ["rhythm_guitar", "drums", "bass", "pad", "melody", "lead", "chords"],
   "chord_progressions": [
-    {
-      "roman": ["i", "VI", "III", "VII"],
-      "weight": 1.0,
-      "source": "Melodic clean chorus — relative-minor form of vi-IV-I-V (Riffhard chorus guide)",
-      "bars_per_chord": 1.0
-    },
-    {
-      "roman": ["i", "bII", "i", "VII"],
-      "weight": 0.8,
-      "source": "Phrygian verse riff — open low-string pedal with b2 tension",
-      "bars_per_chord": 1.0
-    },
-    {
-      "roman": ["VI", "VII", "i", "i"],
-      "weight": 0.6,
-      "source": "Pre-chorus lift into the tonic",
-      "bars_per_chord": 1.0
-    },
-    {
-      "roman": ["i"],
-      "weight": 0.4,
-      "source": "Breakdown — open-string tonic pedal, rhythm carries the section",
-      "bars_per_chord": 4.0
-    }
+    { "name": "verse-pedal-a", "roman": ["i", "i", "VI", "v"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "Pedal-tone verse root motion 0-0-8-7 (metalerator verse_1)" },
+    { "name": "verse-pedal-b", "roman": ["i", "i", "VI", "VII"], "weight": 0.8, "bars_per_chord": 1.0,
+      "source": "0-0-8-10 (metalerator verse_3)" },
+    { "name": "verse-pedal-c", "roman": ["i", "i", "III", "iv"], "weight": 0.6, "bars_per_chord": 1.0,
+      "source": "0-0-3-5 (metalerator verse_6)" },
+    { "name": "verse-phrygian", "roman": ["i", "i", "II", "i"], "weight": 0.8, "bars_per_chord": 1.0,
+      "source": "Phrygian b2 pedal riff — with the verse's scale=phrygian, II is the flat-2 major chord" },
+    { "name": "pre-chorus-lift", "roman": ["VI", "VII", "VI", "VII"], "weight": 0.6, "bars_per_chord": 1.0,
+      "source": "Pre-chorus climb into the tonic" },
+    { "name": "chorus-hook", "roman": ["i", "VI", "III", "VII"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "Clean chorus — relative-minor form of vi-IV-I-V (Riffhard chorus guide)" },
+    { "name": "chorus-lift", "roman": ["VI", "VII", "i", "i"], "weight": 0.7, "bars_per_chord": 1.0,
+      "source": "Anthemic chorus resolving to the tonic" },
+    { "name": "bridge-float", "roman": ["VI", "III", "VII", "i"], "weight": 0.5, "bars_per_chord": 2.0,
+      "source": "Melodic bridge / lead section" },
+    { "name": "breakdown-pedal", "roman": ["i"], "weight": 0.4, "bars_per_chord": 4.0,
+      "source": "Breakdown — open-string tonic pedal, rhythm carries the section" },
+    { "name": "breakdown-b2", "roman": ["i", "i", "i", "II"], "weight": 0.3, "bars_per_chord": 1.0,
+      "source": "Breakdown with a b2 lurch in bar 4 (scale=phrygian)" }
   ],
   "voicing_style": "power_chords",
   "drum_patterns": [
-    {
-      "name": "double-kick-drive",
+    { "name": "double-kick-drive", "feel": "straight",
       "kick":  "xxxxxxxxxxxxxxxx",
       "snare": "....x.......x...",
-      "hh":    "x.x.x.x.x.x.x.x.",
-      "swing": 0.5,
-      "ghost_density": 0.0,
-      "weight": 1.0
-    },
-    {
-      "name": "thrash-skank",
-      "kick":  "x.x.x.x.x.x.x.x.",
+      "ride":  "x...x...x...x...",
+      "weight": 1.0 },
+    { "name": "thrash-skank", "feel": "double_time",
+      "kick":  "x...x...x...x...",
       "snare": "..x...x...x...x.",
       "hh":    "x.x.x.x.x.x.x.x.",
-      "swing": 0.5,
-      "ghost_density": 0.0,
-      "weight": 0.7
-    },
-    {
-      "name": "rock-backbeat-chorus",
-      "kick":  "x.....x.x.......",
+      "weight": 0.7 },
+    { "name": "gallop-verse", "feel": "straight",
+      "kick":  "x.xxx.xxx.xxx.xx",
       "snare": "....x.......x...",
-      "hh":    "x.x.x.x.x.x.x.x.",
-      "oh":    "x...............",
-      "swing": 0.5,
+      "china": "x...x...x...x...",
+      "weight": 0.6 },
+    { "name": "blast-traditional", "feel": "blast",
+      "kick":  "x.x.x.x.x.x.x.x.",
+      "snare": ".x.x.x.x.x.x.x.x",
+      "ride":  "x.x.x.x.x.x.x.x.",
+      "weight": 0.2 },
+    { "name": "chorus-backbeat", "feel": "straight",
+      "kick":  "x.....x.x.x.....",
+      "snare": "....x.......x...",
+      "crash": "x.......x.......",
+      "ride":  "....x.......x...",
       "ghost_density": 0.05,
-      "weight": 0.7
-    },
-    {
-      "name": "halftime-breakdown",
+      "weight": 0.7 },
+    { "name": "chorus-double-kick", "feel": "straight",
+      "kick":  "xxxxxxxxxxxxxxxx",
+      "snare": "....x.......x...",
+      "crash": "x...x...x...x...",
+      "weight": 0.6 },
+    { "name": "intro-build", "feel": "halftime",
+      "kick":  "x.......x.......",
+      "floor_tom": "....x.......x.x.",
+      "ride_bell": "x...x...x...x...",
+      "weight": 0.2 },
+    { "name": "halftime-breakdown", "feel": "halftime", "kick_follow": true,
       "kick":  "x..x..x...x..x..",
       "snare": "........x.......",
-      "hh":    "x...x...x...x...",
-      "swing": 0.5,
-      "ghost_density": 0.0,
-      "weight": 0.3
-    }
+      "china": "x...x...x...x...",
+      "weight": 0.3 },
+    { "name": "breakdown-heavy", "feel": "halftime", "kick_follow": true,
+      "kick":  "x.....x...x.....",
+      "snare": "........x.......",
+      "china": "x.......x.......",
+      "crash": "....a.......a...",
+      "weight": 0.2 }
   ],
+  "fills": {
+    "phrase_bars": 4,
+    "probability": 0.5,
+    "types": ["tom_run", "kick_snare_burst", "triplet_toms", "snare_roll"],
+    "beats": [1.0, 2.0],
+    "section_end_probability": 0.9
+  },
+  "motif": {
+    "bars": 4,
+    "variations": ["exact", "last_bar", "octave_drop", "last_half"],
+    "roles": ["rhythm_guitar", "lead"]
+  },
+  "humanize": { "timing": 0.006, "velocity": 0.04 },
   "song_sections": [
     {
-      "name": "intro",
-      "bars": 4,
-      "density": 0.5,
-      "note": "Clean/ambient guitar or filtered riff, full band slams in on the last bar",
-      "micro": []
-    },
-    {
-      "name": "verse",
-      "bars": 8,
-      "density": 0.85,
-      "note": "Screamed vocals over palm-muted riffing and double kick",
+      "name": "intro", "bars": 4, "density": 0.55, "energy": 0.7,
+      "note": "Clean guitar arpeggio, then the band slams in",
+      "mute": ["lead", "pad"],
       "micro": [
-        { "name": "A", "bars": 4, "density": 0.8, "note": "Main riff, chugs locked to the kick" },
-        { "name": "B", "bars": 4, "density": 0.9, "note": "Riff variation, building toward the pre-chorus" }
+        { "name": "clean", "bars": 2, "density": 0.5, "energy": 0.4, "riff_style": "clean_arp",
+          "mute": ["drums", "bass", "lead", "pad"], "note": "Clean arpeggio alone" },
+        { "name": "slam", "bars": 2, "density": 0.85, "energy": 1.0, "riff_style": "open_chords",
+          "drum_pattern": "chorus-backbeat", "crash": true, "fill": true, "note": "Full band hit" }
       ]
     },
     {
-      "name": "pre-chorus",
-      "bars": 4,
-      "density": 0.75,
+      "name": "verse", "bars": 16, "density": 0.85, "energy": 0.9,
+      "scale": "phrygian", "riff_style": "pedal_tone",
+      "progression": ["verse-pedal-a", "verse-pedal-b", "verse-pedal-c", "verse-phrygian"],
+      "mute": ["lead", "pad"],
+      "note": "Screamed vocals over palm-muted pedal riffs and double kick",
+      "micro": [
+        { "name": "A", "bars": 8, "density": 0.8, "drum_pattern": ["double-kick-drive", "thrash-skank"],
+          "note": "Main riff, double kick then skank beat" },
+        { "name": "B", "bars": 8, "density": 0.9, "riff_style": "gallop",
+          "drum_pattern": ["gallop-verse", "blast-traditional"], "note": "Gallop variation; blast on the last phrase" }
+      ]
+    },
+    {
+      "name": "pre-chorus", "bars": 4, "density": 0.75, "energy": 0.85,
+      "riff_style": "open_chords", "progression": "pre-chorus-lift", "drum_pattern": "chorus-backbeat",
+      "fill": true, "mute": ["lead"],
       "note": "Open chords ring out, drums lift to the cymbals"
     },
     {
-      "name": "chorus",
-      "bars": 8,
-      "density": 0.9,
+      "name": "chorus", "bars": 8, "density": 0.9, "energy": 1.0,
+      "scale": "minor", "riff_style": "open_chords", "progression": ["chorus-hook", "chorus-lift"],
+      "melody_style": "sustained_hook",
       "note": "Clean sung hook over open power chords — the 'good cop' half",
       "micro": [
-        { "name": "A", "bars": 4, "density": 0.9, "note": "Hook statement" },
-        { "name": "B", "bars": 4, "density": 0.95, "note": "Hook repeat, lead harmony on top" }
+        { "name": "A", "bars": 4, "density": 0.9, "drum_pattern": "chorus-backbeat", "note": "Hook statement" },
+        { "name": "B", "bars": 4, "density": 0.95, "drum_pattern": "chorus-double-kick",
+          "note": "Hook repeat over double kick" }
       ]
     },
     {
-      "name": "break",
-      "bars": 8,
-      "density": 0.35,
-      "note": "Breakdown: half-time, open-string chugs locked to the kick, snare on beat 3",
+      "name": "bridge", "bars": 8, "density": 0.7, "energy": 0.75,
+      "scale": "harmonic_minor", "riff_style": "tremolo", "progression": "bridge-float",
+      "drum_pattern": "chorus-backbeat", "melody_style": "harmonized_thirds", "mute": ["pad"],
+      "note": "Melodic lead break — twin guitars in 3rds over tremolo picking"
+    },
+    {
+      "name": "stop", "bars": 1, "density": 0.4, "energy": 1.0, "stop": true,
+      "mute": ["lead", "pad"],
+      "note": "One unison hit and silence — the gap before the breakdown"
+    },
+    {
+      "name": "breakdown", "bars": 8, "density": 0.35, "energy": 1.0,
+      "scale": "phrygian", "riff_style": "chug", "kick_follow": true,
+      "progression": ["breakdown-pedal", "breakdown-b2"], "drum_pattern": "halftime-breakdown",
+      "mute": ["lead", "pad", "melody"],
+      "note": "Half-time, open-string chugs doubled by the kick, snare on 3, china on quarters",
       "micro": [
         { "name": "chug", "bars": 4, "density": 0.35, "note": "Syncopated chug pattern on the tonic" },
-        { "name": "drop", "bars": 4, "density": 0.4, "note": "Heavier variation, gaps for impact" }
+        { "name": "drop", "bars": 4, "density": 0.4, "drum_pattern": "breakdown-heavy",
+          "note": "Heavier variation, more space between hits" }
       ]
     },
     {
-      "name": "outro",
-      "bars": 4,
-      "density": 0.3,
-      "note": "Final breakdown or a ringing chord with feedback"
+      "name": "outro", "bars": 4, "density": 0.4, "energy": 0.95,
+      "riff_style": "chug", "kick_follow": true, "progression": "breakdown-pedal",
+      "drum_pattern": "breakdown-heavy", "fill": false, "mute": ["lead", "pad"],
+      "note": "Final breakdown bars, ending on a ringing chord"
     }
   ],
+  "form": [
+    { "section": "intro" },
+    { "section": "verse" },
+    { "section": "pre-chorus", "probability": 0.8 },
+    { "section": "chorus" },
+    { "section": "verse", "bars": 8 },
+    { "section": "pre-chorus", "probability": 0.45 },
+    { "section": "chorus" },
+    { "section": "bridge", "probability": 0.6 },
+    { "section": "stop" },
+    { "section": "breakdown" },
+    { "section": "chorus", "energy": 1.0, "drum_pattern": "chorus-double-kick" },
+    { "section": "outro" }
+  ],
   "instruments": [
-    { "role": "drums", "register": [35, 81], "style": "metalcore_double_kick", "velocity_range": [0.6, 1.0] },
-    { "role": "bass", "gm": "electric-bass-pick", "register": [24, 48], "style": "sustained_root", "velocity_range": [0.75, 0.95] },
-    { "role": "chords", "gm": "distortion-guitar", "register": [36, 60], "style": "stab", "velocity_range": [0.75, 0.95] },
-    { "role": "melody", "gm": "overdriven-guitar", "register": [62, 86], "style": "melodic_lead", "velocity_range": [0.65, 0.9] }
+    { "role": "drums", "vst": "superior-drummer-3", "register": [22, 127], "style": "metalcore",
+      "velocity_range": [0.62, 0.98] },
+    { "role": "rhythm_guitar", "gm": "distortion-guitar", "vst": "odin-iii", "register": [36, 79],
+      "style": "pedal_tone", "velocity_range": [0.55, 0.95], "double_track": true,
+      "articulations": { "pinch_harmonic_rate": 0.04 } },
+    { "role": "bass", "gm": "electric-bass-pick", "register": [24, 52], "style": "doubled",
+      "velocity_range": [0.75, 0.95] },
+    { "role": "lead", "gm": "overdriven-guitar", "vst": "odin-iii", "register": [60, 88],
+      "style": "sustained_hook", "velocity_range": [0.7, 0.92] },
+    { "role": "pad", "gm": "string-ensemble-1", "register": [52, 76], "style": "sustained",
+      "voicing": "open_voicings", "velocity_range": [0.35, 0.55] }
   ],
   "velocity_ranges": {
-    "drums": [0.6, 1.0],
-    "chords": [0.75, 0.95],
-    "melody": [0.65, 0.9],
-    "bass": [0.75, 0.95]
+    "drums": [0.62, 0.98],
+    "rhythm_guitar": [0.55, 0.95],
+    "lead": [0.7, 0.92],
+    "bass": [0.75, 0.95],
+    "pad": [0.35, 0.55]
   },
   "principles": [
-    "Low-tuned (drop C / drop B) palm-muted power-chord riffing in minor/Phrygian — the b2 and open-string tonic pedal carry the heaviness",
-    "Double-kick and thrash-beat drumming at 130-170 BPM in verses, opening to a backbeat with cymbals under the chorus",
-    "Good cop / bad cop contrast — screamed, riff-driven verses vs. a clean, melodic chorus over i-VI-III-VII",
-    "Half-time breakdown as the climax — kick locked to the guitar chugs, snare on beat 3, space between hits"
+    "The riff is the rhythm section — drop-C palm-muted pedal tones in minor/Phrygian; kick and bass lock to the chugs",
+    "Double-kick, skank and gallop drumming at 130-170 BPM in verses, opening to a crash-driven backbeat under the clean chorus",
+    "Good cop / bad cop — screamed riff verses vs. a clean, melodic chorus over i-VI-III-VII with power chords ringing",
+    "Half-time breakdown as the climax, set up by a stop — kick doubles the chugs, snare on 3, china on quarters, space between hits"
   ],
   "references": [
     { "artist": "Killswitch Engage", "song": "My Curse" },
@@ -148,17 +213,22 @@
   ],
   "research_sources": [
     "https://metalcoredeathcorehardcoregrindcore.fandom.com/wiki/Breakdowns?oldid=3972 (breakdowns: open low strings, drop D-drop B, half-time, snare on 3, kick follows chugs)",
+    "https://en.wikipedia.org/wiki/Heavy_metal_drumming (blast beats with double bass; ride part moved to crash/china; breakdown quarter-note china; cymbal chokes)",
     "https://www.riffhard.com/?p=37226 (clean melodic chorus after heavy verse; I-IV-V / vi-IV-I-V)",
     "https://tunee.ai/music-generator/metalcore (BPM ranges: 120-170 general, 130-170 melodic metalcore)",
     "https://guitarmasterclass.net/ls/Killswitch-Engage-Style2 (KsE-style lesson: drop B, B minor, 120 BPM)",
     "https://medium.com/p/b137a6de5f49 (double-bass programming: 16th kicks under 2-and-4 snare)",
-    "https://eprints.soton.ac.uk/496107 (breakdown treated as a distinct formal section)"
+    "https://eprints.soton.ac.uk/496107 (breakdown treated as a distinct formal section)",
+    "https://github.com/crunkkid411/metalerator (pedal-tone riff rules, verse root motions, kick-follows-guitar breakdowns, form incl. stop / pre-breakdown / final chorus)",
+    "https://solemntones.com/products/odin-iii and https://solemntones.com/pages/faq (Odin III articulations, non-latching keyswitches, tuning range)",
+    "https://www.nailthemix.com/have-you-tried-programmed-guitars-solemn-tones-odin-is-here (Swift Mode velocity → articulation)",
+    "http://www.godprobe.com/projects/notemaps/ (Toontrack default drum note map)"
   ],
   "sound_design": {
     "synth_presets": {},
     "drum_samples": {},
     "fx_chain": ["noise_gate", "tube_screamer_boost", "high_gain_amp", "4x12_cab_ir", "bus_compression"],
-    "notes": "Quad-tracked rhythm guitars hard-panned; bass DI + distorted layer; china/crash chokes on breakdown hits; optional string/synth pad under choruses."
+    "notes": "Drums: Superior Drummer 3 (instruments/superior-drummer-3.json) — a metal kit (e.g. Metal Foundry / Hard Rock SDX) on the default map. Guitars: Solemn Tones Odin III (instruments/odin-iii.json) set to drop C, Amped Rhythm or Clean DI into an amp sim; L/R takes on separate instances or the dual panned preset. Bass: DI + distorted layer, any bass VST on GM-style note numbers. Pad: optional strings under choruses."
   },
-  "notes": "Breakdown is encoded as top-level 'break' (the schema has no 'breakdown' section). Its density is set below 0.4 so drums.py picks the lowest-energy (half-time) pattern. Drum patterns are 16-step."
+  "notes": "Riff-first layer order: rhythm_guitar renders before drums so breakdown kicks (kick_follow) and the bass (style 'doubled') lock to the chugs. Render the whole song with --form."
 }

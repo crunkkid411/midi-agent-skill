@@ -26,7 +26,7 @@ A single Track that the pipeline will use instead of generating that role:
 ```json
 {
   "name": "Custom Bass",
-  "instrument": "fingered-bass",
+  "instrument": "electric-bass-finger",
   "is_drum": false,
   "notes": [
     { "pitch": "D2", "duration": "2", "velocity": 0.7, "start": 0 },
