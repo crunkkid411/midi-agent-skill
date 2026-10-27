@@ -6,3 +6,7 @@ midiutil==1.2.1
 # Optional: For type checking during development
 # mypy>=1.0.0
 # types-dataclasses>=0.6.0
+
+# Optional: used by tests/ (tests skip the parts that need them if missing)
+# mido>=1.3
+# jsonschema>=4.0

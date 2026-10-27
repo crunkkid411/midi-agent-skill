@@ -20,6 +20,15 @@ Usage:
     python skills/compose_from_profile.py --genres scenecore \\
         --resume plans/song.composition.json \\
         --regenerate verse2.B --layers drums
+
+    # Full song from the profile's form template, rendered for specific VSTs
+    # (any VST works with any genre), one .mid per track for a DAW template
+    python skills/compose_from_profile.py --genres metalcore --form \\
+        --vst drums=superior-drummer-3,rhythm_guitar=odin-iii \\
+        --split-tracks --title riffs
+
+    # List available instrument maps
+    python skills/compose_from_profile.py --list-vsts
 """
 
 import argparse
@@ -37,12 +46,24 @@ from skills.generate_midi import generate_midi
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--genres", required=True,
+    p.add_argument("--genres", default=None,
                    help="Comma-separated genre slugs from genres/. Aliases resolve.")
     p.add_argument("--weights", default=None,
                    help="Comma-separated weights matching --genres. Defaults to equal weight.")
     p.add_argument("--bars", type=int, default=8,
-                   help="Total bars to compose. Default 8 (a single loop).")
+                   help="Total bars to compose. Default 8 (a single loop). With a profile form, "
+                        "bars > 8 walks the form truncated to fit.")
+    p.add_argument("--form", action="store_true",
+                   help="Render the profile's complete form template (ignores --bars).")
+    p.add_argument("--tuning", default=None,
+                   help="Override the profile tuning (e.g. drop_b, standard_e, seven_b).")
+    p.add_argument("--vst", default=None,
+                   help="Comma-separated role=instrument-map pairs, e.g. "
+                        "drums=superior-drummer-3,rhythm_guitar=odin-iii (role 'all' targets every track).")
+    p.add_argument("--split-tracks", action="store_true",
+                   help="Also write one .mid per track to output/<title>/.")
+    p.add_argument("--list-vsts", action="store_true",
+                   help="List instrument maps in instruments/ and exit.")
     p.add_argument("--bpm", type=int, default=None,
                    help="Override BPM. Defaults to midpoint of (blended) tempo range.")
     p.add_argument("--key", default=None,
@@ -52,7 +73,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=None,
                    help="Deterministic seed.")
     p.add_argument("--layers", default=None,
-                   help="Comma-separated layer roles to render: chords,drums,bass,melody,lead. Default: all available.")
+                   help="Comma-separated layer roles to render: chords,pad,rhythm_guitar,drums,bass,melody,lead. "
+                        "Default: all available.")
+    p.add_argument("--override-rhythm-guitar", default=None, help="...rhythm guitar (kick/bass still lock to it).")
+    p.add_argument("--override-pad", default=None, help="...pad.")
     p.add_argument("--override-chords", default=None, help="JSON file with a Track to use instead of generating chords.")
     p.add_argument("--override-drums", default=None, help="...drums.")
     p.add_argument("--override-bass", default=None, help="...bass.")
@@ -76,17 +100,38 @@ def load_track_override(path: str) -> Track:
         Note(
             pitch=str(n["pitch"]), duration=str(n["duration"]),
             velocity=n.get("velocity"), start=n.get("start"),
+            articulation=n.get("articulation"), drum=n.get("drum"),
         )
         for n in data.get("notes", [])
     ]
     return Track(
         notes=notes, instrument=data.get("instrument"),
         is_drum=bool(data.get("is_drum", False)), name=data.get("name"),
+        role=data.get("role"), vst=data.get("vst"), pan=data.get("pan"),
     )
+
+
+def parse_vst(arg: str | None) -> dict:
+    out = {}
+    for pair in (arg or "").split(","):
+        if "=" in pair:
+            role, slug = pair.split("=", 1)
+            out[role.strip().replace("-", "_")] = slug.strip()
+    return out
 
 
 def main() -> int:
     args = parse_args()
+
+    if args.list_vsts:
+        from midi_types.instrument_map import list_instrument_maps
+        for m in list_instrument_maps():
+            extra = f"  aliases: {', '.join(m.aliases)}" if m.aliases else ""
+            print(f"{m.name:24s} {m.type:8s} {m.vendor or ''}{extra}")
+        return 0
+    if not args.genres:
+        print("--genres is required", file=sys.stderr)
+        return 2
 
     slugs = [s.strip() for s in args.genres.split(",") if s.strip()]
     if args.weights:
@@ -99,11 +144,15 @@ def main() -> int:
 
     profiles = [load_profile(s) for s in slugs]
     profile = blend_profiles(list(zip(profiles, weights))) if len(profiles) > 1 else profiles[0]
+    if args.tuning:
+        profile.tuning = args.tuning
+    vst_overrides = parse_vst(args.vst)
 
     overrides = {}
     for role, arg in [("chords", args.override_chords), ("drums", args.override_drums),
                       ("bass", args.override_bass), ("melody", args.override_melody),
-                      ("lead", args.override_lead)]:
+                      ("lead", args.override_lead), ("rhythm_guitar", args.override_rhythm_guitar),
+                      ("pad", args.override_pad)]:
         if arg:
             overrides[role] = load_track_override(arg)
 
@@ -114,7 +163,8 @@ def main() -> int:
         with open(args.resume) as f:
             base = Composition.from_dict(json.load(f))
         if args.regenerate:
-            composition = regenerate_section(base, profile, args.regenerate, layers=layers, seed=args.seed)
+            composition = regenerate_section(base, profile, args.regenerate, layers=layers,
+                                             seed=args.seed, vst_overrides=vst_overrides)
         else:
             composition = base
         # On resume, default to keeping the original title and overwriting in place
@@ -126,6 +176,7 @@ def main() -> int:
         composition = compose(
             profile, title=args.title, bars=args.bars, bpm=args.bpm, key=args.key,
             seed=args.seed, overrides=overrides, layers=layers,
+            use_form=args.form, vst_overrides=vst_overrides,
         )
         composition.title = args.title
         default_out = Path(__file__).parent.parent / "plans" / f"{args.title}.composition.json"
@@ -139,11 +190,14 @@ def main() -> int:
     print(f"  Genre(s): {'+'.join(slugs)}")
     print(f"  Tempo: {composition.bpm} BPM   Key: {composition.key}   Bars: {composition.bars}")
     print(f"  Sections: {', '.join(s.name for s in composition.sections)}")
-    print(f"  Tracks: {', '.join(t.name or '?' for t in composition.tracks)} ({sum(len(t.notes) for t in composition.tracks)} notes)")
+    print(f"  Tracks: {', '.join((t.name or '?') + (f' [{t.vst}]' if t.vst else '') for t in composition.tracks)} "
+          f"({sum(len(t.notes) for t in composition.tracks)} notes)")
 
     if not args.no_midi:
-        midi_path = generate_midi(composition)
+        midi_path = generate_midi(composition, split_tracks=args.split_tracks)
         print(f"Wrote MIDI: {midi_path}")
+        if args.split_tracks:
+            print(f"  Per-track files: {Path(midi_path).with_suffix('')}/")
 
     return 0
 

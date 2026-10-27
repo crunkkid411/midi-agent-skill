@@ -1,6 +1,7 @@
 # Generated MIDI/WAV outputs (rendered locally, not source-of-truth)
 /output/*.mid
 /output/*.wav
+/output/*/
 
 # Generated composition.json files; keep README + intentionally committed examples
 /plans/*.composition.json

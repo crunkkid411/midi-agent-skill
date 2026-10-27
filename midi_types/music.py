@@ -9,6 +9,13 @@ Backwards-compatible extensions:
   interpreted as GM drum note numbers (kick=36, snare=38, closed-hh=42, etc).
 - Composition.sections is a flat list of named bar ranges (1-indexed, inclusive).
   Micro-sections use dotted names: "verse1.A", "verse2.B", "chorus1.drop".
+- Note.articulation ("palm_mute", "open", "pinch_harmonic", "dead", "slide",
+  ...) and Note.drum (lane name: "kick", "china", "ride_bell", ...) are
+  instrument-agnostic intent. The renderer maps them onto whichever VST the
+  track targets (instruments/*.json): keyswitches, velocity bands, note maps.
+- Track.role / Track.vst say which pipeline layer produced the track and
+  which instrument map renders it. Track.pan (-1.0..1.0) is used for
+  double-tracked parts.
 """
 
 from dataclasses import dataclass, field
@@ -21,6 +28,8 @@ class Note:
     duration: str                       # "4", "8", "d4", "T8" — see DURATION_MAP
     velocity: Optional[float] = None    # 0.0-1.0; None → default at render
     start: Optional[float] = None       # beats from track start; None → sequential append
+    articulation: Optional[str] = None  # "palm_mute", "open", "pinch_harmonic", "dead", "slide", ...
+    drum: Optional[str] = None          # drum lane name for is_drum tracks ("kick", "china", ...)
 
 
 @dataclass
@@ -29,6 +38,9 @@ class Track:
     instrument: Optional[str] = None    # GM instrument name (ignored if is_drum)
     is_drum: bool = False               # True → MIDI channel 9
     name: Optional[str] = None          # display name (e.g. "Bass", "Lead")
+    role: Optional[str] = None          # pipeline role: "drums", "rhythm_guitar", "bass", ...
+    vst: Optional[str] = None           # instrument map slug from instruments/ (None → General MIDI)
+    pan: Optional[float] = None         # -1.0 (left) .. 1.0 (right)
 
 
 @dataclass
@@ -36,9 +48,26 @@ class Section:
     name: str                           # "verse1", "chorus1.drop", "bridge.B"
     start_bar: int                      # 1-indexed inclusive
     end_bar: int                        # 1-indexed inclusive
+    density: Optional[float] = None     # resolved from the profile by the structure planner
+    bindings: Dict[str, Any] = field(default_factory=dict)  # resolved SectionBindings (energy, drum_pattern, ...)
 
     def bars(self) -> int:
         return self.end_bar - self.start_bar + 1
+
+    @property
+    def is_micro(self) -> bool:
+        return "." in self.name
+
+    @property
+    def base(self) -> str:
+        """'verse2.B' → 'verse'"""
+        return self.name.partition(".")[0].rstrip("0123456789") or self.name
+
+    def start_beat(self, beats_per_bar: int = 4) -> float:
+        return (self.start_bar - 1) * beats_per_bar
+
+    def end_beat(self, beats_per_bar: int = 4) -> float:
+        return self.end_bar * beats_per_bar
 
 
 @dataclass
@@ -50,6 +79,7 @@ class Composition:
     time_signature: Tuple[int, int] = (4, 4)
     sections: List[Section] = field(default_factory=list)
     key: Optional[str] = None           # e.g. "D Dorian", "C minor"
+    tuning: Optional[str] = None        # e.g. "drop_c" — informs riff/bass pedal notes
 
     def to_dict(self) -> Dict[str, Any]:
         out: Dict[str, Any] = {
@@ -60,12 +90,16 @@ class Composition:
                     "name": t.name,
                     "instrument": t.instrument,
                     "is_drum": t.is_drum,
+                    **{k: v for k, v in {"role": t.role, "vst": t.vst, "pan": t.pan}.items()
+                       if v is not None},
                     "notes": [
                         {k: v for k, v in {
                             "pitch": n.pitch,
                             "duration": n.duration,
                             "velocity": n.velocity,
                             "start": n.start,
+                            "articulation": n.articulation,
+                            "drum": n.drum,
                         }.items() if v is not None or k in ("pitch", "duration")}
                         for n in t.notes
                     ],
@@ -79,11 +113,16 @@ class Composition:
             out["time_signature"] = list(self.time_signature)
         if self.sections:
             out["sections"] = [
-                {"name": s.name, "start_bar": s.start_bar, "end_bar": s.end_bar}
+                {k: v for k, v in {
+                    "name": s.name, "start_bar": s.start_bar, "end_bar": s.end_bar,
+                    "density": s.density, "bindings": s.bindings or None,
+                }.items() if v is not None}
                 for s in self.sections
             ]
         if self.key is not None:
             out["key"] = self.key
+        if self.tuning is not None:
+            out["tuning"] = self.tuning
         return out
 
     @classmethod
@@ -96,6 +135,8 @@ class Composition:
                     duration=str(n["duration"]),
                     velocity=n.get("velocity"),
                     start=n.get("start"),
+                    articulation=n.get("articulation"),
+                    drum=n.get("drum"),
                 )
                 for n in t.get("notes", [])
                 if "pitch" in n and "duration" in n
@@ -105,10 +146,14 @@ class Composition:
                 instrument=t.get("instrument"),
                 is_drum=bool(t.get("is_drum", False)),
                 name=t.get("name"),
+                role=t.get("role"),
+                vst=t.get("vst"),
+                pan=t.get("pan"),
             ))
 
         sections = [
-            Section(name=s["name"], start_bar=int(s["start_bar"]), end_bar=int(s["end_bar"]))
+            Section(name=s["name"], start_bar=int(s["start_bar"]), end_bar=int(s["end_bar"]),
+                    density=s.get("density"), bindings=s.get("bindings", {}))
             for s in data.get("sections", [])
         ]
 
@@ -124,4 +169,5 @@ class Composition:
             time_signature=ts,
             sections=sections,
             key=data.get("key"),
+            tuning=data.get("tuning"),
         )

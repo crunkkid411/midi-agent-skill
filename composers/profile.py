@@ -10,6 +10,7 @@ from midi_types.genre_profile import (
     GenreProfile, ChordProgression, DrumPattern, SongSection, MicroSection,
     InstrumentRole, find_profile,
 )
+from midi_types.music import Section
 
 
 def load_profile(slug: str, genres_dir: Optional[Path] = None) -> GenreProfile:
@@ -80,7 +81,7 @@ def blend_profiles(profiles_with_weights: List[Tuple[GenreProfile, float]]) -> G
             blended_progs.append(ChordProgression(
                 roman=cp.roman, weight=cp.weight * w,
                 source=f"{cp.source or ''} [{p.name}@{w:.2f}]".strip(),
-                bars_per_chord=cp.bars_per_chord,
+                bars_per_chord=cp.bars_per_chord, name=cp.name,
             ))
 
     # Drum patterns: union, scaled weights
@@ -89,9 +90,9 @@ def blend_profiles(profiles_with_weights: List[Tuple[GenreProfile, float]]) -> G
         for d in p.drum_patterns:
             blended_drums.append(DrumPattern(
                 name=f"{d.name}__{p.name}", kick=d.kick, snare=d.snare,
-                hh=d.hh, oh=d.oh, clap=d.clap, perc=d.perc,
+                hh=d.hh, oh=d.oh, clap=d.clap, perc=d.perc, lanes=dict(d.lanes),
                 swing=d.swing, ghost_density=d.ghost_density,
-                weight=d.weight * w,
+                weight=d.weight * w, kick_follow=d.kick_follow, feel=d.feel,
             ))
 
     # Instruments: primary's roles, plus any distinctive role from others
@@ -128,6 +129,15 @@ def blend_profiles(profiles_with_weights: List[Tuple[GenreProfile, float]]) -> G
         research_sources=[s for p, _ in pw for s in p.research_sources],
         sound_design=primary.sound_design,
         notes=f"Blended: {', '.join(f'{p.name}@{w:.2f}' for p, w in pw)}",
+        # Structural fields come from the primary (form/tuning/order must stay coherent);
+        # drum-pattern / progression names in its sections still resolve because the
+        # primary's entries are in the union (pattern names get a __genre suffix).
+        tuning=primary.tuning,
+        layer_order=list(primary.layer_order),
+        form=list(primary.form),
+        fills=primary.fills or next((p.fills for p, _ in pw if p.fills), None),
+        motif=primary.motif or next((p.motif for p, _ in pw if p.motif), None),
+        humanize=primary.humanize,
     )
     return blended
 
@@ -137,6 +147,49 @@ def get_instrument(profile: GenreProfile, role: str) -> Optional[InstrumentRole]
         if i.role == role:
             return i
     return None
+
+
+def progression_for(profile: GenreProfile, section: Section,
+                    rng: Optional[random.Random] = None) -> Optional[ChordProgression]:
+    """Section-bound progression (by name or index) or a weighted pick."""
+    if not profile.chord_progressions:
+        return None
+    want = section.bindings.get("progression")
+    if want is not None:
+        wanted = want if isinstance(want, list) else [want]
+        found = []
+        for w in wanted:
+            if isinstance(w, int) and 0 <= w < len(profile.chord_progressions):
+                found.append(profile.chord_progressions[w])
+            else:
+                found.extend(cp for cp in profile.chord_progressions if cp.name == w)
+        if found:
+            return pick_weighted(found, rng=rng)
+    return pick_weighted(profile.chord_progressions, rng=rng)
+
+
+def find_drum_pattern(profile: GenreProfile, name: str) -> Optional[DrumPattern]:
+    """Exact name, or a blended '<name>__<genre>' entry."""
+    for d in profile.drum_patterns:
+        if d.name == name or d.name.split("__")[0] == name:
+            return d
+    return None
+
+
+def scale_for(section: Section, default_scale: str) -> str:
+    from .theory import SCALES
+    s = section.bindings.get("scale")
+    if s:
+        s = s.lower().replace(" ", "_")
+        if s in SCALES:
+            return s
+    return default_scale
+
+
+def style_for(section: Section, role: str, default: Optional[str]) -> Optional[str]:
+    key = {"rhythm_guitar": "riff_style", "bass": "bass_style",
+           "melody": "melody_style", "lead": "melody_style"}.get(role)
+    return section.bindings.get(key) or default if key else default
 
 
 def velocity_range(profile: GenreProfile, role: str) -> Tuple[float, float]:

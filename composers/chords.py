@@ -1,109 +1,108 @@
 """
-Chord track composer.
+Chord / pad track composer.
 
-Reads a profile + section plan, picks a chord progression, voices each chord
-in the chord-instrument's register, emits a Track of held chord stabs.
+Renders the harmony timeline in the role's register. Voicing comes from
+section binding → instrument `voicing` → profile `voicing_style`:
+triads, extended_7th_9th, power_chords (root-5-8, no 3rd), open_voicings.
+Chords stay in root position (theory.voice_chord) instead of folding each
+tone into the register independently.
+
+Styles: stab (8th-note stabs), sustained (held), sparse_held (held, some
+chords skipped at low density), strum8 (8th strums with accented
+downbeats), pulse4 (quarter-note pulses).
 """
 
-from typing import List, Tuple, Optional
+from typing import List, Optional
 import random
 
 from midi_types.music import Track, Note, Section
-from midi_types.genre_profile import GenreProfile, ChordProgression
-from .theory import chord_pitches, parse_key, midi_in_register, midi_to_pitch_str
-from .profile import pick_weighted, get_instrument, velocity_range
+from midi_types.genre_profile import GenreProfile
+from .theory import voice_chord, parse_key, midi_to_pitch_str, lowest_string
+from .profile import get_instrument, velocity_range
+from .harmony import ChordSpan
+from .structure import section_density, section_energy, is_muted, is_stop
 
 
 def generate_chords(
     profile: GenreProfile,
     sections: List[Section],
+    timeline: List[ChordSpan],
     key: Optional[str] = None,
     rng: Optional[random.Random] = None,
-) -> Tuple[Track, List[Tuple[Section, ChordProgression]]]:
-    """Build the chord track. Returns (track, [(section, progression)]) so
-    downstream composers (bass, melody) can reference what was played where."""
+    role: str = "chords",
+) -> Track:
     rng = rng or random.Random()
-    inst = get_instrument(profile, "chords")
+    inst = get_instrument(profile, role)
     if inst is None:
-        return Track(notes=[], name="Chords"), []
+        return Track(notes=[], name=role.title(), role=role)
 
-    tonic_pc, scale_name = parse_key(key or profile.default_key)
+    tonic_pc, _ = parse_key(key or profile.default_key)
     register = inst.register
-    vmin, vmax = velocity_range(profile, "chords")
-    style = inst.style or "sustained"
+    vmin, vmax = velocity_range(profile, role)
+    style = inst.style or ("sustained" if role == "pad" else "sustained")
+    low = lowest_string(profile.tuning) if "guitar" in (inst.gm or "") else None
 
     notes: List[Note] = []
-    plan: List[Tuple[Section, ChordProgression]] = []
-
-    # Voicing octave: aim near the middle of the chord register
-    base_octave = max(2, min(5, ((register[0] + register[1]) // 2) // 12 - 1))
-
-    # Only consider top-level sections for chord planning (skip micro sub-sections,
-    # they share the parent's progression)
-    top_sections = [s for s in sections if "." not in s.name]
-
-    for section in top_sections:
-        if not profile.chord_progressions:
+    stopped = set()
+    for span in timeline:
+        sec = span.section
+        if is_muted(sec, role):
             continue
-        prog = pick_weighted(profile.chord_progressions, rng=rng)
-        plan.append((section, prog))
+        voicing = sec.bindings.get("voicing") or inst.voicing or profile.voicing_style
+        voiced = voice_chord(span.roman, tonic_pc, span.scale, register, voicing, low_root=low)
+        energy = section_energy(profile, sec)
+        vel = rng.uniform(vmin, vmax) * (0.85 + 0.15 * energy)
+        dur_beats = span.end - span.start
 
-        bars_per_chord = max(0.25, prog.bars_per_chord)
-        # Repeat the progression to fill the section
-        chord_idx = 0
-        bar_cursor = section.start_bar
-        while bar_cursor <= section.end_bar:
-            roman = prog.roman[chord_idx % len(prog.roman)]
-            chord_idx += 1
-            pitches = chord_pitches(roman, tonic_pc, scale_name, base_octave=base_octave)
-            voiced = sorted(set(midi_in_register(p, register) for p in pitches))
-            chord_bars = min(bars_per_chord, section.end_bar - bar_cursor + 1)
+        if is_stop(sec):
+            if sec.name not in stopped:
+                stopped.add(sec.name)
+                _hit(notes, voiced, sec.start_beat(), 1.5, vel)
+            continue
 
-            # Emit each pitch as a note at the same start time = chord stab/hold
-            beats_per_bar = 4  # assume 4/4 for now
-            start_beat = (bar_cursor - 1) * beats_per_bar
-            duration_beats = chord_bars * beats_per_bar
-            duration_str = _beats_to_duration(duration_beats)
-
-            # Velocity per chord (with small variation)
-            vel = rng.uniform(vmin, vmax)
-
-            if style == "stab":
-                # Short percussive hits at start of each beat group
-                stab_dur = "16"
-                for offset in range(int(chord_bars * beats_per_bar * 2)):  # 8th-note stabs
-                    if offset % 4 == 0 or rng.random() < 0.4:  # downbeats + occasional offbeat
-                        for p in voiced:
-                            notes.append(Note(
-                                pitch=midi_to_pitch_str(p), duration=stab_dur,
-                                velocity=round(vel * rng.uniform(0.85, 1.0), 3),
-                                start=round(start_beat + offset * 0.5, 4),
-                            ))
-            else:
-                # Sustained chord
-                for p in voiced:
-                    notes.append(Note(
-                        pitch=midi_to_pitch_str(p), duration=duration_str,
-                        velocity=round(vel, 3), start=round(start_beat, 4),
-                    ))
-
-            bar_cursor += int(chord_bars) if chord_bars >= 1 else 1
+        if style == "stab":
+            for offset in range(int(dur_beats * 2)):  # 8th-note grid
+                if offset % 4 == 0 or rng.random() < 0.4:
+                    _hit(notes, voiced, span.start + offset * 0.5, 0.25,
+                         vel * rng.uniform(0.85, 1.0))
+        elif style == "strum8":
+            for offset in range(int(dur_beats * 2)):
+                accent = offset % 2 == 0
+                _hit(notes, voiced, span.start + offset * 0.5, 0.5,
+                     vel * (1.0 if accent else 0.8), "open" if accent else "palm_mute")
+        elif style == "pulse4":
+            for beat in range(int(dur_beats)):
+                _hit(notes, voiced, span.start + beat, 1.0, vel * (1.0 if beat % 2 == 0 else 0.9))
+        elif style == "sparse_held" and section_density(profile, sec) < 0.5 and rng.random() < 0.3:
+            continue
+        else:
+            _hit(notes, voiced, span.start, dur_beats, vel)
 
     return Track(
-        name="Chords",
+        name=role.title(),
         instrument=inst.gm or "electric-piano-1",
         notes=notes,
-    ), plan
+        role=role,
+    )
 
 
-def _beats_to_duration(beats: float) -> str:
-    """Map beat counts to closest duration token."""
-    candidates = [
-        (4.0, "1"), (3.0, "d2"), (2.0, "2"),
-        (1.5, "d4"), (1.0, "4"), (0.75, "d8"),
-        (0.5, "8"), (0.25, "16"), (0.125, "32"),
-    ]
-    for b, tok in candidates:
-        if beats >= b - 0.01:
+def _hit(notes: List[Note], pitches: List[int], start: float, beats: float, vel: float,
+         articulation: Optional[str] = None) -> None:
+    for p in pitches:
+        notes.append(Note(
+            pitch=midi_to_pitch_str(p), duration=beats_to_duration(beats),
+            velocity=round(min(1.0, vel), 3), start=round(start, 4), articulation=articulation,
+        ))
+
+
+def beats_to_duration(beats: float) -> str:
+    """Map beat counts to a duration token. Exact tokens where possible,
+    otherwise a numeric division (4/beats) that parse_duration understands."""
+    table = {4.0: "1", 3.0: "d2", 2.0: "2", 1.5: "d4", 1.0: "4", 0.75: "d8",
+             0.5: "8", 0.25: "16", 0.125: "32"}
+    for b, tok in table.items():
+        if abs(beats - b) < 0.01:
             return tok
+    if beats > 0:
+        return f"{4.0 / beats:.6g}"
     return "16"

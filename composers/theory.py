@@ -194,19 +194,102 @@ def chord_root(roman: str, tonic_pc: int, scale_name: str, octave: int = 2) -> i
     return chord_pitches(roman, tonic_pc, scale_name, base_octave=octave)[0]
 
 
+# -------- Voicing --------
+
+VOICING_STYLES = ("triads", "extended_7th_9th", "power_chords", "open_voicings", "stab", "sustained")
+
+
+def voice_chord(roman: str, tonic_pc: int, scale_name: str, register: Tuple[int, int],
+                voicing: str = "triads", low_root: Optional[int] = None) -> List[int]:
+    """Voice a Roman numeral inside `register`, root always lowest.
+
+    Folding each chord tone into the register independently produces
+    inversions (C4 over Eb3-G3). Here the root is placed first, then every
+    other tone is stacked above it, so the chord keeps its root position.
+
+    voicing:
+      triads / stab / sustained → root + 3rd + 5th (+ extensions the numeral asks for)
+      extended_7th_9th          → same, extensions kept
+      power_chords              → root + 5th + octave (no 3rd: distortion-safe)
+      open_voicings             → root, 5th, 10th (3rd up an octave), + extensions
+    low_root: if given (e.g. a guitar's lowest open string), the root is the
+      lowest pitch with the right pitch class at or above it.
+    """
+    pitches = chord_pitches(roman, tonic_pc, scale_name, base_octave=4)
+    root_pc = pitches[0] % 12
+    intervals = sorted({p - pitches[0] for p in pitches})
+
+    if voicing == "power_chords":
+        intervals = [0, 7, 12]
+    elif voicing == "open_voicings":
+        intervals = sorted({0, 7} | {i + 12 for i in intervals if i not in (0, 7)})
+    elif voicing in ("triads", "stab", "sustained"):
+        intervals = [i for i in intervals if i <= 7] or [0, 4, 7]
+
+    floor = low_root if low_root is not None else register[0]
+    root = floor + ((root_pc - floor) % 12)
+    while root + intervals[-1] > register[1] and root - 12 >= floor:
+        root -= 12
+    return [root + i for i in intervals]
+
+
+# -------- Tunings (lowest → highest string, MIDI) --------
+
+TUNINGS = {
+    "standard_e":     [40, 45, 50, 55, 59, 64],
+    "drop_d":         [38, 45, 50, 55, 59, 64],
+    "standard_d":     [38, 43, 48, 53, 57, 62],
+    "drop_c":         [36, 43, 48, 53, 57, 62],
+    "standard_c":     [36, 41, 46, 51, 55, 60],
+    "drop_b":         [35, 42, 47, 52, 56, 61],
+    "drop_a":         [33, 40, 45, 50, 54, 59],
+    "seven_b":        [35, 40, 45, 50, 55, 59, 64],
+    "seven_drop_a":   [33, 40, 45, 50, 55, 59, 64],
+    "eight_f#":       [30, 35, 40, 45, 50, 55, 59, 64],
+    "eight_drop_e":   [28, 35, 40, 45, 50, 55, 59, 64],
+    "double_drop_c":  [24, 31, 36, 41, 46, 50, 55, 60],
+}
+
+
+def resolve_tuning(tuning) -> Optional[List[int]]:
+    """'drop_c' / 'Drop C' / {'strings': [...]} / [36, 43, ...] → list of open-string MIDI pitches."""
+    if not tuning:
+        return None
+    if isinstance(tuning, dict):
+        return list(tuning.get("strings") or []) or resolve_tuning(tuning.get("name"))
+    if isinstance(tuning, (list, tuple)):
+        return [int(p) for p in tuning]
+    key = str(tuning).strip().lower().replace(" ", "_").replace("-", "_")
+    return TUNINGS.get(key)
+
+
+def lowest_string(tuning) -> Optional[int]:
+    strings = resolve_tuning(tuning)
+    return min(strings) if strings else None
+
+
+def pedal_note(root_pc: int, low: int) -> int:
+    """Lowest pitch with pitch class `root_pc` at or above the open string `low`."""
+    return low + ((root_pc - low) % 12)
+
+
 # -------- Drum name → GM MIDI note mapping (channel 9) --------
 
 GM_DRUM = {
     "kick": 36, "bd": 36,
     "snare": 38, "sd": 38,
+    "snare_rimshot": 40, "snare_sidestick": 37, "snare_ghost": 38,
     "clap": 39,
     "rim": 37, "rimshot": 37,
     "hh": 42, "hat": 42, "closed_hat": 42, "closedhat": 42,
+    "hh_tight": 42, "hh_pedal": 44,
     "oh": 46, "open_hat": 46, "openhat": 46,
-    "ride": 51,
-    "crash": 49,
-    "tom_low": 41, "tom_mid": 47, "tom_high": 50,
+    "ride": 51, "ride_bell": 53, "ride_edge": 59,
+    "crash": 49, "crash_2": 57, "crash_choke": 49,
+    "china": 52, "splash": 55,
+    "tom_high": 50, "tom_mid": 47, "tom_low": 45, "floor_tom": 43, "floor_tom_low": 41,
     "perc": 56,  # cowbell as default percussive accent
+    "cowbell": 56, "tambourine": 54, "shaker": 70,
 }
 
 

@@ -22,13 +22,25 @@ class ChordProgression:
     weight: float = 1.0
     source: Optional[str] = None        # reference song that uses this
     bars_per_chord: float = 1.0         # how long each chord is held
+    name: Optional[str] = None          # addressable by sections: "progression": "breakdown-pedal"
+
+
+DRUM_GRID_FIELDS = ("kick", "snare", "hh", "oh", "clap", "perc")
 
 
 @dataclass
 class DrumPattern:
     """16-step grid notation. Each string is 16 chars, one per 16th note.
-    'x' = hit, '.' = rest, 'g' = ghost note (low velocity).
-    Patterns can also be 8 or 32 steps; length sets the resolution."""
+    'x' = hit, '.' = rest, 'g' = ghost note (low velocity), 'a' = accent.
+    Patterns can also be 8, 12, 24 or 32 steps; length sets the resolution
+    (12/24 = triplet grids).
+
+    The six classic lanes are fields; any other lane (crash, china, ride,
+    ride_bell, splash, tom_high, tom_mid, tom_low, floor_tom,
+    snare_rimshot, cowbell, ...) lives in `lanes`.
+
+    kick_follow=True replaces the kick grid with the rhythm guitar's
+    attacks (metalcore/djent breakdowns: the kick doubles the chugs)."""
     name: str
     kick: str = "................"
     snare: str = "................"
@@ -36,38 +48,148 @@ class DrumPattern:
     oh: str = "................"        # open hi-hat
     clap: str = "................"
     perc: str = "................"      # extra percussion
+    lanes: Dict[str, str] = field(default_factory=dict)
     swing: float = 0.5                  # 0.5 = straight, 0.66 = hard swing
     ghost_density: float = 0.0          # probability of inserting ghost notes
     weight: float = 1.0
+    kick_follow: bool = False
+    feel: Optional[str] = None          # "halftime", "double_time", "blast" — informational
+
+    def all_lanes(self) -> Dict[str, str]:
+        out = {k: getattr(self, k) for k in DRUM_GRID_FIELDS}
+        out.update(self.lanes)
+        return {k: v for k, v in out.items() if v and any(c not in ". " for c in v)}
+
+    @classmethod
+    def from_dict(cls, p: Dict[str, Any]) -> "DrumPattern":
+        known = {k: v for k, v in p.items() if k in cls.__dataclass_fields__ and k != "lanes"}
+        lanes = dict(p.get("lanes", {}))
+        for k, v in p.items():
+            if k not in cls.__dataclass_fields__ and isinstance(v, str):
+                lanes[k] = v
+        return cls(lanes=lanes, **known)
+
+
+# Keys a section / micro-section / form entry may set to steer composers.
+SECTION_BINDING_KEYS = (
+    "energy", "drum_pattern", "progression", "scale", "riff_style", "bass_style",
+    "melody_style", "voicing", "fill", "stop", "mute", "crash", "kick_follow",
+)
 
 
 @dataclass
-class MicroSection:
+class SectionBindings:
+    """Per-section composer steering. Everything is optional; unset values
+    fall through micro → parent section → instrument/profile defaults.
+
+    energy: 0-1 intensity (how hard), independent of density (how busy).
+      A breakdown is low density, high energy.
+    drum_pattern: pattern name, or a list played one per phrase.
+    progression: chord progression name or index.
+    scale: per-section scale override ("phrygian" in the verse, "minor" in the chorus).
+    riff_style / bass_style / melody_style / voicing: override the role's style here.
+    fill: False disables phrase-end fills; True forces one at the section end.
+    stop: True → one hit on beat 1, then silence (the metalcore "stop").
+    mute: roles silent in this section (["melody", "lead"]).
+    crash: False suppresses the crash on the section's downbeat.
+    kick_follow: force the kick to double the rhythm guitar.
+    """
+    energy: Optional[float] = None
+    drum_pattern: Any = None
+    progression: Any = None
+    scale: Optional[str] = None
+    riff_style: Optional[str] = None
+    bass_style: Optional[str] = None
+    melody_style: Optional[str] = None
+    voicing: Optional[str] = None
+    fill: Optional[bool] = None
+    stop: Optional[bool] = None
+    mute: List[str] = field(default_factory=list)
+    crash: Optional[bool] = None
+    kick_follow: Optional[bool] = None
+
+    @staticmethod
+    def kwargs(d: Dict[str, Any]) -> Dict[str, Any]:
+        return {k: d[k] for k in SECTION_BINDING_KEYS if k in d}
+
+
+@dataclass
+class MicroSection(SectionBindings):
     """A sub-block within a song section — e.g. an 8-bar verse split into
     A (bars 1-4) and B (bars 5-8). The agent and user can address these by
     dotted name: 'verse.B', 'chorus.drop'."""
-    name: str                           # "A", "B", "drop", "break"
-    bars: int                           # length within the parent section
+    name: str = "A"                     # "A", "B", "drop", "break"
+    bars: int = 4                       # length within the parent section
     density: float = 0.7                # 0.0-1.0 how filled the section is
     note: Optional[str] = None          # human description ("drum break", "stripped")
 
 
 @dataclass
-class SongSection:
-    name: str                           # "intro", "verse", "chorus", "bridge", "outro"
-    bars: int                           # total bars in this section
+class SongSection(SectionBindings):
+    name: str = "verse"                 # "intro", "verse", "chorus", "breakdown", "outro"
+    bars: int = 8                       # total bars in this section
     density: float = 0.7
     micro: List[MicroSection] = field(default_factory=list)
     note: Optional[str] = None
 
 
 @dataclass
+class FormEntry:
+    """One slot in a profile's song form. `section` names a song_sections
+    entry; `bars` overrides its length; `probability` < 1 makes the slot
+    optional (rolled with the composition seed); any SECTION_BINDING_KEYS
+    in `overrides` apply to this occurrence only (e.g. the final chorus at
+    higher energy)."""
+    section: str
+    bars: Optional[int] = None
+    probability: float = 1.0
+    overrides: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class InstrumentRole:
-    role: str                           # "drums", "bass", "chords", "melody", "pad", "lead"
+    role: str                           # "drums", "rhythm_guitar", "bass", "chords", "melody", "pad", "lead"
     gm: Optional[str] = None            # GM instrument name (None for drum kits)
     register: Tuple[int, int] = (36, 84)  # MIDI note range
-    style: Optional[str] = None         # "sustained_root", "walking", "arpeggio", "stab"
+    style: Optional[str] = None         # "sustained_root", "walking", "pedal_tone", "stab", ...
     velocity_range: Tuple[float, float] = (0.5, 0.8)
+    vst: Optional[str] = None           # instrument map slug (instruments/<slug>.json)
+    voicing: Optional[str] = None       # overrides profile.voicing_style for this role
+    double_track: bool = False          # render L/R takes with independent humanization
+    articulations: Dict[str, Any] = field(default_factory=dict)  # e.g. {"pinch_harmonic_rate": 0.05}
+
+
+@dataclass
+class FillConfig:
+    """Phrase-end drum fills. Every `phrase_bars`, the last `beats` of the
+    phrase are replaced with a fill picked from `types` with `probability`."""
+    phrase_bars: int = 4
+    probability: float = 0.7
+    types: List[str] = field(default_factory=lambda: ["snare_roll", "tom_run"])
+    beats: List[float] = field(default_factory=lambda: [1.0, 2.0])
+    section_end_probability: float = 1.0
+
+
+@dataclass
+class MotifConfig:
+    """Write `bars` of an idea once per section, then repeat it with
+    variation instead of re-rolling every note. `variations` are applied
+    cyclically to later repetitions:
+      'exact'       — repeat as-is
+      'last_bar'    — regenerate the final bar of the repetition
+      'last_half'   — regenerate the second half
+      'octave_drop' — high notes drop an octave
+      'last_root'   — move the final chord root to another scale degree
+    """
+    bars: int = 4
+    variations: List[str] = field(default_factory=lambda: ["exact", "last_bar", "octave_drop", "last_half"])
+    roles: List[str] = field(default_factory=lambda: ["rhythm_guitar", "melody", "lead"])
+
+
+@dataclass
+class Humanize:
+    timing: float = 0.0                 # max +/- beats of start jitter
+    velocity: float = 0.0               # max +/- velocity (0-1 scale)
 
 
 @dataclass
@@ -87,8 +209,14 @@ class GenreProfile:
     principles: List[str] = field(default_factory=list)
     references: List[Dict[str, str]] = field(default_factory=list)
     research_sources: List[str] = field(default_factory=list)
-    sound_design: Dict[str, Any] = field(default_factory=dict)  # forward-compat: synth presets, sample paths
+    sound_design: Dict[str, Any] = field(default_factory=dict)  # synth presets, sample paths, fx
     notes: Optional[str] = None         # free-form agent notes
+    tuning: Any = None                  # "drop_c" or {"strings": [...]} — guitar/bass pedal notes
+    layer_order: List[str] = field(default_factory=list)  # e.g. ["rhythm_guitar", "drums", "bass", ...]
+    form: List[FormEntry] = field(default_factory=list)
+    fills: Optional[FillConfig] = None
+    motif: Optional[MotifConfig] = None
+    humanize: Humanize = field(default_factory=Humanize)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "GenreProfile":
@@ -105,21 +233,27 @@ class GenreProfile:
                     weight=p.get("weight", 1.0),
                     source=p.get("source"),
                     bars_per_chord=p.get("bars_per_chord", 1.0),
+                    name=p.get("name"),
                 )
                 for p in data.get("chord_progressions", [])
             ],
             voicing_style=data.get("voicing_style", "triads"),
-            drum_patterns=[
-                DrumPattern(**{k: v for k, v in p.items() if k in DrumPattern.__dataclass_fields__})
-                for p in data.get("drum_patterns", [])
-            ],
+            drum_patterns=[DrumPattern.from_dict(p) for p in data.get("drum_patterns", [])],
             song_sections=[
                 SongSection(
                     name=s["name"],
                     bars=s["bars"],
                     density=s.get("density", 0.7),
-                    micro=[MicroSection(**m) for m in s.get("micro", [])],
+                    micro=[
+                        MicroSection(
+                            name=m["name"], bars=m["bars"],
+                            density=m.get("density", s.get("density", 0.7)),
+                            note=m.get("note"), **SectionBindings.kwargs(m),
+                        )
+                        for m in s.get("micro", [])
+                    ],
                     note=s.get("note"),
+                    **SectionBindings.kwargs(s),
                 )
                 for s in data.get("song_sections", [])
             ],
@@ -130,6 +264,10 @@ class GenreProfile:
                     register=tuple(i.get("register", [36, 84])),
                     style=i.get("style"),
                     velocity_range=tuple(i.get("velocity_range", [0.5, 0.8])),
+                    vst=i.get("vst"),
+                    voicing=i.get("voicing"),
+                    double_track=bool(i.get("double_track", False)),
+                    articulations=i.get("articulations", {}),
                 )
                 for i in data.get("instruments", [])
             ],
@@ -139,6 +277,19 @@ class GenreProfile:
             research_sources=data.get("research_sources", []),
             sound_design=data.get("sound_design", {}),
             notes=data.get("notes"),
+            tuning=data.get("tuning"),
+            layer_order=data.get("layer_order", []),
+            form=[
+                FormEntry(
+                    section=f["section"], bars=f.get("bars"),
+                    probability=f.get("probability", 1.0),
+                    overrides=SectionBindings.kwargs(f),
+                )
+                for f in data.get("form", [])
+            ],
+            fills=FillConfig(**data["fills"]) if data.get("fills") else None,
+            motif=MotifConfig(**data["motif"]) if data.get("motif") else None,
+            humanize=Humanize(**data.get("humanize", {})),
         )
 
     @classmethod
