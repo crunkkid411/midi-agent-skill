@@ -86,6 +86,23 @@ listed. The structure planner writes those mutes into the sections.
 - **Bass** follows chord roots on the bass's open string. It can sustain, walk, lock to the kick (`kick_locked`) or double the riff (`doubled`).
 - **Melody/Lead** target chord tones on strong beats and back off where the drum track is busy (fills, crashes, snare stacks). They repeat as a motif and can harmonize in 3rds or double the riff an octave up.
 
+## Meter
+
+Every section carries `beats_per_bar` and an absolute `beat_offset` from
+the planner, using the section's `meter` binding or the song `meter`.
+Composers place bars with `section.bar_start(bar)` and loop over
+`section.beats_per_bar`, never over a fixed 4. That is why a 3/4 breakdown
+works and everything after it stays on the grid. The renderer writes
+time-signature events.
+
+## Tones
+
+A clean intro, an acoustic break or a choir bridge is a different
+instrument, not the same patch played softly. A role's `tones` and a
+section's `tone` binding move those notes to their own track
+(`Rhythm Guitar (clean)`, `Pad (choir)`), each with its own GM program or
+VST and its own double-tracking setting.
+
 ## Double / Quad Tracking
 
 Metal and post-hardcore rhythm guitars are recorded at least twice and

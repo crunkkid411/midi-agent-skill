@@ -114,6 +114,17 @@ class TestTheory(unittest.TestCase):
         self.assertEqual(v[0] % 12, 8)               # Ab is the lowest note
         self.assertEqual(v, sorted(v))
 
+    def test_major_sevenths(self):
+        self.assertIn(66, voice_chord("IVmaj7", 2, "dorian", (55, 80), "extended_7th_9th"))  # G B D F#
+        self.assertNotIn(65, voice_chord("IVmaj7", 2, "dorian", (55, 80), "extended_7th_9th"))
+        pc, scale = parse_key("C# minor")
+        self.assertEqual(sorted(p % 12 for p in voice_chord("VImaj7", pc, scale, (40, 80), "extended_7th_9th")),
+                         [1, 4, 8, 9])                                               # A C# E G#
+
+    def test_guitar_open_voicing(self):
+        pc, scale = parse_key("A minor")
+        self.assertEqual(voice_chord("i", pc, scale, (38, 80), "guitar_open", low_root=38), [45, 52, 57, 60, 64])
+
     def test_tunings(self):
         self.assertEqual(lowest_string("drop_c"), 36)
         self.assertEqual(lowest_string("Drop B"), 35)
@@ -224,8 +235,8 @@ class TestMetalcore(unittest.TestCase):
         new = regenerate_section(self.comp, self.profile, target, layers=["drums"], seed=5)
         sec = self.sections[target]
         old_d, new_d = track(self.comp, "drums"), track(new, "drums")
-        outside = lambda t: [(n.start, n.drum) for n in t.notes
-                             if not (sec.start_beat() <= n.start < sec.end_beat())]
+        outside = lambda t: sorted((n.start, n.drum) for n in t.notes
+                                   if not (sec.start_beat() <= n.start < sec.end_beat()))
         self.assertEqual(outside(old_d), outside(new_d))
         self.assertEqual(track(self.comp, "rhythm_guitar").notes, track(new, "rhythm_guitar").notes)
         # regenerated breakdown drums still lock to the existing riff (ignoring the end fill)
@@ -307,6 +318,82 @@ class TestCrabcore(unittest.TestCase):
         stop = self.sections["stop"]
         dive = [e for e in sb.automation if e["param"] == "pitch" and stop.start_beat() <= e["time"] <= stop.end_beat()]
         self.assertLess(min(e["semitones"] for e in dive), -6)
+
+
+class TestPostHardcore(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = load_profile("underoath")          # alias for post-hardcore
+        cls.comp = compose(cls.profile, use_form=True, seed=2)
+        cls.sections = {s.name: s for s in cls.comp.sections}
+
+    def test_breakdown_in_three_four(self):
+        bd = self.sections["breakdown"]
+        self.assertEqual(bd.beats_per_bar, 3.0)
+        self.assertAlmostEqual(bd.end_beat() - bd.start_beat(), bd.bars() * 3)
+        after = min((s for s in self.comp.sections if s.start_bar == bd.end_bar + 1), key=lambda s: s.name)
+        self.assertAlmostEqual(after.start_beat(), bd.end_beat())
+        d = track(self.comp, "drums")
+        snares = {round((n.start - bd.start_beat()) % 3, 2) for n in notes_in(d, bd) if n.drum == "snare"}
+        self.assertIn(2.0, snares)                                   # beat 3 of 3/4
+        for n in notes_in(next(t for t in self.comp.tracks if t.name == "Rhythm Guitar L"), bd):
+            self.assertLess((n.start - bd.start_beat()) % 3, 3.0)
+
+    def test_meter_events_render(self):
+        try:
+            import mido
+        except ImportError:
+            self.skipTest("mido not installed")
+        tmp = Path(tempfile.mkdtemp())
+        path = generate_midi(self.comp, out_dir=tmp)
+        sigs = [(m.numerator, m.denominator) for t in mido.MidiFile(path).tracks for m in t
+                if m.type == "time_signature"]
+        self.assertIn((3, 4), sigs)
+        self.assertEqual(sigs[-1], (4, 4))
+
+    def test_tones_get_their_own_tracks(self):
+        clean = next(t for t in self.comp.tracks if t.name == "Rhythm Guitar (clean)")
+        acoustic = next(t for t in self.comp.tracks if t.name == "Rhythm Guitar (acoustic)")
+        bridge, solo = self.sections["bridge"], self.sections["solo"]
+        self.assertTrue(clean.notes and all(bridge.start_beat() - 0.05 <= n.start < bridge.end_beat() for n in clean.notes))
+        self.assertTrue(acoustic.notes and all(solo.start_beat() - 0.05 <= n.start < solo.end_beat() for n in acoustic.notes))
+        self.assertIsNone(acoustic.vst)
+        self.assertEqual(clean.vst, "odin-iii")
+        main = next(t for t in self.comp.tracks if t.name == "Rhythm Guitar L")
+        self.assertFalse(notes_in(main, bridge))
+        self.assertEqual(sum(1 for t in self.comp.tracks if t.name.startswith("Rhythm Guitar (clean)")), 1)  # not doubled
+        self.assertTrue(any(t.name == "Pad (choir)" for t in self.comp.tracks))
+
+    def test_vocal_line_breathes(self):
+        mel = track(self.comp, "melody")
+        ch = self.sections["chorus"]
+        for bar in range(ch.start_bar + 1, ch.end_bar + 1, 2):        # every second bar of a phrase
+            start = ch.bar_start(bar)
+            self.assertLessEqual(sum(1 for n in mel.notes if start - 0.05 <= n.start < start + 3.95), 1)
+
+    def test_guitar_two_ostinato(self):
+        lead = track(self.comp, "lead")
+        intro = self.sections["intro"]
+        ns = sorted(notes_in(lead, intro), key=lambda n: n.start)
+        pedal = {n.pitch for i, n in enumerate(ns) if round((n.start - intro.start_beat()) * 2) % 2 == 1}
+        self.assertEqual(len(pedal), 1)                              # one fixed high pedal note
+        self.assertIn("bend", {n.articulation for n in lead.notes})
+
+    def test_regenerate_after_meter_change(self):
+        target = next(s.name for s in self.comp.sections if s.name.startswith("chorus3."))
+        new = regenerate_section(self.comp, self.profile, target, layers=["drums"], seed=9)
+        sec = next(s for s in self.comp.sections if s.name == target)
+        old_d, new_d = track(self.comp, "drums"), track(new, "drums")
+        outside = lambda t: sorted((n.start, n.drum) for n in t.notes
+                                   if not (sec.start_beat() <= n.start < sec.end_beat()))
+        self.assertEqual(outside(old_d), outside(new_d))
+        self.assertTrue(notes_in(new_d, sec))
+
+    def test_metalcore_clean_intro_tone(self):
+        comp = compose(load_profile("metalcore"), use_form=True, seed=1)
+        clean = next(t for t in comp.tracks if t.name == "Rhythm Guitar (clean)")
+        sec = next(s for s in comp.sections if s.name == "intro.clean")
+        self.assertTrue(clean.notes and all(n.start < sec.end_beat() for n in clean.notes))
 
 
 class TestStructure(unittest.TestCase):

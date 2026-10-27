@@ -67,7 +67,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Roman numerals: 'i', 'i7', 'i9', 'V7', 'iiø7', 'bVI', etc. Lowercase = minor, UPPERCASE = major. Suffixes: 7, 9, 11, 13 for extensions; ø = half-dim; ° = dim; b/# for chromatic."
+            "description": "Roman numerals: 'i', 'i7', 'i9', 'V7', 'iiø7', 'bVI', etc. Lowercase = minor, UPPERCASE = major. Suffixes: 7, 9, 11, 13 for extensions; ø = half-dim; ° = dim; b/# for chromatic. Major 7ths: 'maj7', 'M7' or 'Δ' (IVmaj7, VImaj9)."
           },
           "weight": {
             "type": "number",
@@ -94,6 +94,7 @@
         "extended_7th_9th",
         "power_chords",
         "open_voicings",
+        "guitar_open",
         "stab",
         "sustained"
       ],
@@ -170,6 +171,10 @@
               "electronic"
             ],
             "description": "electronic = played by the electronic_drums role (drum machine layer)."
+          },
+          "meter": {
+            "type": "string",
+            "description": "Meter the grid is written in (default: the grid spans 4 beats). '3/4' → a 12-step grid is one 3/4 bar."
           }
         },
         "additionalProperties": {
@@ -332,6 +337,7 @@
                     "extended_7th_9th",
                     "power_chords",
                     "open_voicings",
+                    "guitar_open",
                     "stab",
                     "sustained"
                   ]
@@ -494,6 +500,22 @@
                 "tempo_scale": {
                   "type": "number",
                   "description": "Multiple of the song tempo for this section (0.75 = slower breakdown)."
+                },
+                "meter": {
+                  "type": "string",
+                  "pattern": "^[0-9]+/(1|2|4|8|16)$",
+                  "description": "Time signature here (3/4, 6/8, 7/8); micro-sections inherit it."
+                },
+                "tone": {
+                  "description": "Instrument tone here: a tone name for every role that defines it, or {role: tone}.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             }
@@ -582,6 +604,7 @@
               "extended_7th_9th",
               "power_chords",
               "open_voicings",
+              "guitar_open",
               "stab",
               "sustained"
             ]
@@ -744,6 +767,22 @@
           "tempo_scale": {
             "type": "number",
             "description": "Multiple of the song tempo for this section (0.75 = slower breakdown)."
+          },
+          "meter": {
+            "type": "string",
+            "pattern": "^[0-9]+/(1|2|4|8|16)$",
+            "description": "Time signature here (3/4, 6/8, 7/8); micro-sections inherit it."
+          },
+          "tone": {
+            "description": "Instrument tone here: a tone name for every role that defines it, or {role: tone}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           }
         }
       }
@@ -787,7 +826,7 @@
           },
           "style": {
             "type": "string",
-            "description": "Playing style. drums: free-form. rhythm_guitar: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp. bass: sustained_root, walking, kick_locked (sub_808*), doubled, root_eighths, octave, arpeggio. chords/pad: stab, sustained, sparse_held, strum8, pulse4. melody/lead: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead. bass also: wobble. chords/pad also: trance_gate, follow_riff."
+            "description": "Playing style. drums: free-form. rhythm_guitar: pedal_tone, gallop, chug, open_chords, tremolo, power_strum, clean_arp. bass: sustained_root, walking, kick_locked (sub_808*), doubled, root_eighths, octave, arpeggio. chords/pad: stab, sustained, sparse_held, strum8, pulse4. melody/lead: pentatonic_sparse, fast_arpeggio, stab, sustained_hook, harmonized_thirds, riff_octave, tremolo_lead. bass also: wobble. chords/pad also: trance_gate, follow_riff. rhythm_guitar also: palm_eighths. melody/lead also: vocal_line, pedal_ostinato."
           },
           "velocity_range": {
             "type": "array",
@@ -810,6 +849,7 @@
               "extended_7th_9th",
               "power_chords",
               "open_voicings",
+              "guitar_open",
               "stab",
               "sustained"
             ]
@@ -871,6 +911,22 @@
               "type": "string"
             },
             "description": "Section names this role plays in; muted everywhere else (synth leads only in choruses, etc)."
+          },
+          "tones": {
+            "type": "object",
+            "description": "Alternate tones for this role, switched per section by the tone binding: {name: {gm, vst, double_track}}. Each tone renders as its own track ('<Name> (<tone>)').",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "gm": {
+                  "type": "string"
+                },
+                "vst": {
+                  "type": "string"
+                },
+                "double_track": {}
+              }
+            }
           }
         }
       }
@@ -1078,6 +1134,7 @@
               "extended_7th_9th",
               "power_chords",
               "open_voicings",
+              "guitar_open",
               "stab",
               "sustained"
             ]
@@ -1240,6 +1297,22 @@
           "tempo_scale": {
             "type": "number",
             "description": "Multiple of the song tempo for this section (0.75 = slower breakdown)."
+          },
+          "meter": {
+            "type": "string",
+            "pattern": "^[0-9]+/(1|2|4|8|16)$",
+            "description": "Time signature here (3/4, 6/8, 7/8); micro-sections inherit it."
+          },
+          "tone": {
+            "description": "Instrument tone here: a tone name for every role that defines it, or {role: tone}.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
           }
         }
       }
@@ -1335,6 +1408,11 @@
           "description": "max +/- (0-1 scale)"
         }
       }
+    },
+    "meter": {
+      "type": "string",
+      "pattern": "^[0-9]+/(1|2|4|8|16)$",
+      "description": "Song meter, default 4/4. Sections override with the meter binding."
     }
   }
 }

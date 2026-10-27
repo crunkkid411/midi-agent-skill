@@ -21,6 +21,7 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 - **Riff-first genres** — a rhythm-guitar composer (pedal tone, gallop, breakdown chugs, power chords on the tuning's open string). Profiles can reorder layers so the kick and bass lock to the riff.
 - **Section-level control** — every section and micro-section can bind its own groove (or a sequence per phrase), progression, scale, styles, mutes and stops. Form templates have optional slots. Fills land at phrase ends. Motifs repeat with variation.
 - **Any VST, any genre** — instrument maps translate drum lanes, articulations and automation for Superior Drummer 3, Solemn Tones Odin III (Swift Mode velocity bands + held keyswitches), UJAM Beatmaker (kit or song-part phrase keys), Serum 2, Vital, General MIDI or your own map, with per-track MIDI export for DAW templates.
+- **Meters and tones per section** — a 3/4 breakdown inside a 4/4 song, a clean-tone intro or acoustic break on its own track, a choir pad in the bridge.
 - **Production moves, not just notes** — double/quad-tracked guitars whose takes are identical, varied, octave-split or harmonized per section; filter sweeps, sidechain pumping, wobble bass, risers and tape-stop dives; drum-machine layers; section tempo changes.
 
 ---
@@ -41,7 +42,8 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 │   ├─ _schema.json
 │   ├─ lo-fi-hip-hop.json
 │   ├─ metalcore.json
-│   ├─ crabcore.json                 # Uses every profile field
+│   ├─ crabcore.json
+│   ├─ post-hardcore.json            # Underoath "They're Only Chasing Safety" era
 │   └─ scenecore.json                # Seeded from Ace-Step DAW reference
 ├─ instruments/                      # VST maps: superior-drummer-3, odin-iii, ujam-beatmaker(-style), serum-2, vital, gm-drums, _template
 ├─ composers/                        # Deterministic Python builders

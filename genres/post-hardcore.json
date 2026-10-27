@@ -1,0 +1,254 @@
+{
+  "name": "post-hardcore",
+  "aliases": ["screamo", "mall-screamo", "2000s-post-hardcore", "melodic-hardcore", "underoath",
+              "theyre-only-chasing-safety", "tocs"],
+  "tempo_range": [110, 165],
+  "default_key": "A minor",
+  "common_keys": ["A minor", "C# minor", "F# minor", "E minor"],
+  "scales": ["minor", "harmonic_minor", "minor_pentatonic", "dorian"],
+  "tuning": "drop_d",
+  "meter": "4/4",
+  "layer_order": ["rhythm_guitar", "drums", "electronic_drums", "bass", "lead", "chords", "pad", "melody"],
+  "chord_progressions": [
+    { "name": "reinventing", "roman": ["i", "III", "VI", "VII"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "Reinventing Your Exit — Am C F G (intro / chorus)" },
+    { "name": "reinventing-verse", "roman": ["i", "VI", "VII", "v"], "weight": 0.7, "bars_per_chord": 1.0,
+      "source": "Reinventing Your Exit verse — Am F G Em" },
+    { "name": "boy-verse", "roman": ["i", "VI", "VII", "iv"], "weight": 1.0, "bars_per_chord": 1.0,
+      "source": "A Boy Brushed Red Living in Black and White — C#m A B F#m" },
+    { "name": "boy-chorus", "roman": ["i", "VI", "iv", "VI"], "weight": 0.9, "bars_per_chord": 1.0,
+      "source": "A Boy Brushed Red chorus / outro — C#m A F#m A" },
+    { "name": "boy-bridge", "roman": ["i", "VImaj7", "iv", "VImaj7"], "weight": 0.5, "bars_per_chord": 1.0,
+      "source": "A Boy Brushed Red bridge — C#m AM7 F#m AM7" },
+    { "name": "dsg-verse", "roman": ["i", "VI", "VII", "VII"], "weight": 0.8, "bars_per_chord": 1.0,
+      "source": "Down, Set, Go verse / intro — F#m D E" },
+    { "name": "dsg-chorus", "roman": ["i", "III", "VI", "iv"], "weight": 0.8, "bars_per_chord": 1.0,
+      "source": "Down, Set, Go chorus — F#m A D Bm" },
+    { "name": "scream-section", "roman": ["VI", "i", "VII", "VI"], "weight": 0.6, "bars_per_chord": 1.0,
+      "source": "Reinventing Your Exit scream section — F Am G F" },
+    { "name": "breakdown-6-7", "roman": ["VI", "VII"], "weight": 0.3, "bars_per_chord": 1.0,
+      "source": "Down, Set, Go breakdown — palm-muted D E, switched to 3/4" }
+  ],
+  "voicing_style": "guitar_open",
+  "drum_patterns": [
+    { "name": "rock-eighths",
+      "kick":  "x.....x.x.......",
+      "snare": "....x.......x...",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "ghost_density": 0.1, "weight": 1.0 },
+    { "name": "hardcore-skank", "feel": "double_time",
+      "kick":  "x...x...x...x...",
+      "snare": "..x...x...x...x.",
+      "ride":  "x.x.x.x.x.x.x.x.", "weight": 0.6 },
+    { "name": "dance-beat",
+      "kick":  "x...x...x...x...",
+      "snare": "....x.......x...",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "oh":    "..x...x...x...x.", "weight": 0.7 },
+    { "name": "chorus-wash",
+      "kick":  "x.....x.x.x.....",
+      "snare": "....x.......x...",
+      "crash": "x...x...x...x...", "weight": 0.8 },
+    { "name": "tom-groove",
+      "kick":  "x.......x.......",
+      "floor_tom": "..x.x.x...x.x.x.",
+      "tom_low":   "....x.......x...",
+      "hh_pedal":  "x...x...x...x...", "weight": 0.2 },
+    { "name": "halftime-bridge", "feel": "halftime",
+      "kick":  "x.......x.......",
+      "snare": "........x.......",
+      "ride_bell": "x...x...x...x...", "weight": 0.3 },
+    { "name": "breakdown-34", "meter": "3/4", "feel": "halftime", "kick_follow": true,
+      "kick":  "x.....x.....",
+      "snare": "........x...",
+      "china": "x...x...x...", "weight": 0.2 },
+    { "name": "electronica-beat", "layer": "electronic",
+      "kick":  "x.......x.x.....",
+      "clap":  "....x.......x...",
+      "hh":    "xgxgxgxgxgxgxgxg", "weight": 1.0 },
+    { "name": "loop-interlude", "layer": "electronic",
+      "kick":  "x.....x...x.....",
+      "snare_2": "....x.......x..g",
+      "hh":    "x.x.x.x.x.x.x.x.",
+      "fx_1":  "x...............", "weight": 0.4 }
+  ],
+  "fills": {
+    "phrase_bars": 4,
+    "probability": 0.5,
+    "types": ["snare_roll", "tom_run", "kick_snare_burst", "triplet_toms"],
+    "beats": [1.0, 2.0],
+    "section_end_probability": 0.9
+  },
+  "motif": {
+    "bars": 2,
+    "variations": ["exact", "last_bar", "exact", "last_half"],
+    "roles": ["rhythm_guitar", "lead", "melody", "chords"]
+  },
+  "humanize": { "timing": 0.009, "velocity": 0.05 },
+  "song_sections": [
+    {
+      "name": "intro", "bars": 4, "density": 0.6, "energy": 0.7,
+      "riff_style": "palm_eighths", "progression": ["boy-verse", "reinventing"],
+      "drum_pattern": "tom-groove", "double_track": "identical", "fill": true,
+      "note": "Palm-muted chord-root 8ths while guitar 2 plays a high ostinato with feedback bends"
+    },
+    {
+      "name": "verse", "bars": 8, "density": 0.85, "energy": 0.85,
+      "progression": ["boy-verse", "reinventing-verse", "dsg-verse"], "double_track": "variation",
+      "note": "Screamed verse (Chamberlain) — the clean voice sits out",
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.8, "riff_style": "palm_eighths",
+          "drum_pattern": "rock-eighths", "note": "Palm-muted 8ths, guitar 2 ostinato on top" },
+        { "name": "B", "bars": 4, "density": 0.9, "riff_style": "power_strum", "voicing": "power_chords",
+          "drum_pattern": ["hardcore-skank", "rock-eighths"], "mute": ["lead"],
+          "note": "Opens into strummed power chords, faster hardcore beat" }
+      ]
+    },
+    {
+      "name": "pre-chorus", "bars": 4, "density": 0.8, "energy": 0.9,
+      "riff_style": "open_chords", "progression": "scream-section", "drum_pattern": "chorus-wash",
+      "fill": true, "double_track": "identical",
+      "note": "Scream section — ringing open chords, cymbal wash, fill into the chorus"
+    },
+    {
+      "name": "chorus", "bars": 8, "density": 0.9, "energy": 1.0,
+      "riff_style": "power_strum", "voicing": "guitar_open",
+      "progression": ["reinventing", "boy-chorus", "dsg-chorus"], "double_track": "octave",
+      "note": "Clean sung hook (Gillespie) over big strummed open chords; keys and pad fill out the top",
+      "micro": [
+        { "name": "A", "bars": 4, "density": 0.9, "drum_pattern": "dance-beat", "note": "Dance beat under the hook" },
+        { "name": "B", "bars": 4, "density": 0.95, "drum_pattern": "chorus-wash", "note": "Hook repeat, crash wash" }
+      ]
+    },
+    {
+      "name": "post-chorus", "bars": 4, "density": 0.8, "energy": 0.9,
+      "riff_style": "pedal_tone", "progression": "dsg-verse", "drum_pattern": "rock-eighths",
+      "double_track": "variation",
+      "note": "Riff tag after the chorus, screams return"
+    },
+    {
+      "name": "breakdown", "bars": 6, "density": 0.4, "energy": 1.0, "meter": "3/4",
+      "riff_style": "chug", "kick_follow": true, "progression": "breakdown-6-7",
+      "drum_pattern": "breakdown-34", "double_track": "identical", "voicing": "power_chords",
+      "note": "Palm-muted VI-VII chugs, beat switched from 4/4 to 3/4, kick doubles the chugs"
+    },
+    {
+      "name": "interlude", "bars": 4, "density": 0.55, "energy": 0.4,
+      "progression": "boy-bridge", "electronic_pattern": "loop-interlude",
+      "mute": ["rhythm_guitar", "drums", "bass", "melody"],
+      "automation": [{ "param": "filter", "shape": "ramp_up", "roles": ["pad", "chords"], "from": 0.2, "to": 0.8 }],
+      "note": "Loop-based instrumental (The Blue Note): programmed beat, keys and pad only"
+    },
+    {
+      "name": "solo", "bars": 4, "density": 0.55, "energy": 0.45,
+      "riff_style": "clean_arp", "tone": { "rhythm_guitar": "acoustic" }, "progression": "dsg-verse",
+      "mute": ["drums", "bass", "lead"], "melody_style": { "melody": "vocal_line" },
+      "note": "Acoustic break — strummed/arpeggiated acoustic guitar under a soft clean vocal"
+    },
+    {
+      "name": "bridge", "bars": 8, "density": 0.7, "energy": 0.6,
+      "progression": "boy-bridge", "riff_style": "clean_arp", "tone": { "rhythm_guitar": "clean", "pad": "choir" },
+      "drum_pattern": "halftime-bridge", "electronic_pattern": "electronica-beat", "voicing": "open_voicings",
+      "double_track": "identical",
+      "note": "Clean maj7 bridge over an electronica beat; a choir pad enters (It's Dangerous Business...)"
+    },
+    {
+      "name": "stop", "bars": 1, "density": 0.4, "energy": 1.0, "stop": true,
+      "note": "Silence, then the distortion comes back in"
+    },
+    {
+      "name": "outro", "bars": 4, "density": 0.6, "energy": 0.85,
+      "riff_style": "open_chords", "progression": "boy-chorus", "drum_pattern": "chorus-wash",
+      "fill": false, "double_track": "octave",
+      "automation": [{ "param": "filter", "shape": "ramp_down", "roles": ["pad", "chords"], "from": 0.2, "to": 1.0 }],
+      "note": "Chorus chords ring out to the end"
+    }
+  ],
+  "form": [
+    { "section": "intro" },
+    { "section": "verse" },
+    { "section": "pre-chorus" },
+    { "section": "chorus" },
+    { "section": "post-chorus", "probability": 0.5 },
+    { "section": "verse" },
+    { "section": "pre-chorus", "probability": 0.7 },
+    { "section": "chorus" },
+    { "section": "interlude", "probability": 0.3 },
+    { "section": "breakdown", "probability": 0.7 },
+    { "section": "solo", "probability": 0.5 },
+    { "section": "bridge", "probability": 0.8 },
+    { "section": "stop", "probability": 0.6 },
+    { "section": "chorus", "energy": 1.0 },
+    { "section": "outro" }
+  ],
+  "instruments": [
+    { "role": "drums", "vst": "superior-drummer-3", "register": [22, 127], "style": "post_hardcore",
+      "velocity_range": [0.5, 0.95] },
+    { "role": "electronic_drums", "vst": "ujam-beatmaker", "register": [36, 51], "style": "electronica",
+      "velocity_range": [0.45, 0.8] },
+    { "role": "rhythm_guitar", "gm": "distortion-guitar", "vst": "odin-iii", "register": [38, 80],
+      "style": "power_strum", "velocity_range": [0.55, 0.92],
+      "double_track": { "takes": 2, "mode": "variation", "variation_rate": 0.2 },
+      "articulations": { "pinch_harmonic_rate": 0.01 },
+      "tones": {
+        "clean": { "gm": "electric-guitar-clean", "vst": "odin-iii", "double_track": false },
+        "acoustic": { "gm": "acoustic-guitar-steel", "double_track": false }
+      } },
+    { "role": "lead", "gm": "overdriven-guitar", "vst": "odin-iii", "register": [57, 86], "style": "pedal_ostinato",
+      "velocity_range": [0.55, 0.85], "play_in": ["intro", "verse", "post-chorus", "bridge"] },
+    { "role": "bass", "gm": "electric-bass-pick", "register": [26, 52], "style": "root_eighths",
+      "velocity_range": [0.7, 0.9],
+      "articulations": {} },
+    { "role": "chords", "gm": "synth-strings-1", "vst": "vital", "register": [57, 81], "style": "sustained",
+      "voicing": "open_voicings", "velocity_range": [0.3, 0.5],
+      "play_in": ["intro", "chorus", "interlude", "bridge", "outro"] },
+    { "role": "pad", "gm": "pad-2-warm", "vst": "vital", "register": [52, 79], "style": "sustained",
+      "voicing": "open_voicings", "velocity_range": [0.25, 0.45],
+      "play_in": ["chorus", "interlude", "solo", "bridge", "outro"],
+      "tones": { "choir": { "gm": "choir-aahs" } } },
+    { "role": "melody", "gm": "voice-oohs", "register": [57, 76], "style": "vocal_line",
+      "velocity_range": [0.6, 0.85], "play_in": ["chorus", "solo", "bridge"] }
+  ],
+  "velocity_ranges": {
+    "drums": [0.5, 0.95],
+    "electronic_drums": [0.45, 0.8],
+    "rhythm_guitar": [0.55, 0.92],
+    "lead": [0.55, 0.85],
+    "bass": [0.7, 0.9],
+    "chords": [0.3, 0.5],
+    "pad": [0.25, 0.45],
+    "melody": [0.6, 0.85]
+  },
+  "principles": [
+    "Half screamed, half sung — screamed verses and scream sections answered by a clean, melodic chorus hook (the drummer sings)",
+    "Two guitars with different jobs: guitar 1 strums palm-muted 8ths and big open chords in standard/drop D; guitar 2 plays a high single-note ostinato with feedback bends",
+    "Emo-pop harmony in minor keys — i-III-VI-VII, i-VI-VII-iv, i-VI-iv-VI loops, maj7 colour in the bridge, catchy and diatonic rather than heavy",
+    "Dynamics and texture over brutality — dance beats under choruses, a 3/4 breakdown, keys/synths and electronica beats, a clean or acoustic break, choir in the bridge"
+  ],
+  "references": [
+    { "artist": "Underoath", "song": "A Boy Brushed Red Living in Black and White" },
+    { "artist": "Underoath", "song": "Reinventing Your Exit" },
+    { "artist": "Underoath", "song": "It's Dangerous Business Walking Out Your Front Door" },
+    { "artist": "Underoath", "song": "Down, Set, Go" },
+    { "artist": "Underoath", "song": "Some Will Seek Forgiveness, Others Escape" }
+  ],
+  "research_sources": [
+    "https://en.wikipedia.org/wiki/They're_Only_Chasing_Safety (screamo / post-hardcore / melodic hardcore / emo; Gillespie clean vocals vs Chamberlain screams; Dudley keyboards, synths, samples; 80s-style electronics; church choir bridge; electronica beat; The Blue Note built from loops)",
+    "https://www.allmusic.com/album/theyre-only-chasing-safety-mw0000457752 (contrast of melody and brutal screaming)",
+    "https://www.scenepointblank.com/reviews/underoath/theyre-only-chasing-safety/ (about 50% screaming / 50% melodic singing)",
+    "https://www.albumoftheyear.org/album/21005-underoath-theyre-only-chasing-safety.php (post-hardcore, mall screamo, metalcore, emo-pop)",
+    "https://guitartabs.cc/tabs/u/underoath/reinventing_your_exit_crd.html (Am C F G / Am F G Em; high-string guitar-2 riff with feedback bend)",
+    "https://guitartabs.cc/tabs/u/underoath/a_boy_brushed_red_living_in_black_and_white_crd.html (C#m A B F#m; C#m A F#m A; AM7 bridge; palm-muted intro)",
+    "https://www.guitartabs.cc/tabs/u/underoath/down_set_go_crd.html (F#m D E; F#m A D Bm; breakdown D E palm muted, 4/4 → 3/4; acoustic section; silence then distortion)",
+    "https://getsongbpm.com/song/reinventing-your-exit/MZxZY5 (155 BPM, A minor)",
+    "https://acousticbrainz.org/7eaca3f4-3574-478d-84ed-ec27f7d54289 (A Boy Brushed Red ~113 BPM)",
+    "https://pt.ultimate-guitar.com/tab/underoath/theyre-only-chasing-safety-tabs-502662 (drop D / standard tunings on the album)"
+  ],
+  "sound_design": {
+    "synth_presets": { "chords": "80s poly strings (Vital)", "pad": "warm pad; choir tone in the bridge" },
+    "drum_samples": {},
+    "fx_chain": ["mid_gain_amp", "cab_ir", "plate_reverb_on_cleans", "bus_compression"],
+    "notes": "Less gain than metalcore. Guitars: Odin III in drop D — Amped Rhythm for guitar 1, Amped Lead for guitar 2, a separate Odin instance on Amped Clean for the '(clean)' track; the '(acoustic)' track wants an acoustic guitar VST or GM. Drums: Superior Drummer 3 with a rock kit; Beatmaker (VOID suits the electronica beats). Melody is the clean-vocal guide line."
+  },
+  "notes": "Modelled on Underoath's They're Only Chasing Safety (2004). Introduced: per-section meter (3/4 breakdown), per-section instrument tones (clean / acoustic guitar, choir pad), vocal_line phrasing, guitar-2 pedal_ostinato, palm_eighths riffs, guitar_open voicing, maj7 chords."
+}

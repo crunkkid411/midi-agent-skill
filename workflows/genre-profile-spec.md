@@ -35,6 +35,8 @@
 | `instruments[].double_track` + section `double_track` | How double/quad-tracked takes relate per section |
 | `instruments[].play_in` | Which sections a part plays in |
 | section `tempo` / `tempo_scale` | Tempo changes |
+| `meter` + section `meter` | Time signature per section (a 3/4 breakdown, a 6/8 bridge) |
+| `instruments[].tones` + section `tone` | Clean / acoustic / choir tones per section, each on its own track |
 
 ## Scales
 
@@ -54,7 +56,8 @@ section, `II` is the flat-2 major chord.
 - **Suffix** = quality marker: `°` or `dim` = diminished, `ø` = half-diminished, `+` or `aug` = augmented.
 - **Numbers** = extensions: `7`, `9`, `11`, `13`. Implicit lower extensions are added (a 9 chord includes the 7).
 - **Accidentals** = chromatic alteration: `b9`, `#11`, `b5`. Prefix `b`/`#` on the Roman numeral itself shifts the root chromatically: `bVI` = chord on flat-6.
-- **Examples**: `i9`, `iv9`, `iiø7`, `V7b9`, `bVI`, `#iv°7`.
+- **Major 7ths**: `maj7`, `M7` or `Δ` (`IVmaj7`, `VImaj9`). A plain upper-case `7` is dominant.
+- **Examples**: `i9`, `iv9`, `iiø7`, `V7b9`, `bVI`, `#iv°7`, `VImaj7`.
 
 Give every progression a `name`; sections bind to it.
 
@@ -67,8 +70,10 @@ Give every progression a `name`; sections bind to it.
 `voicing_style` (profile), `instruments[].voicing` (role) or the section
 `voicing` binding: `triads`, `extended_7th_9th`, `power_chords` (root–5th–
 octave, no 3rd, which keeps distorted guitars clear), `open_voicings` (spread,
-3rd up an octave), `stab`, `sustained`. Chords are always voiced in root
-position.
+3rd up an octave), `guitar_open` (real open-chord guitar shape: root, 5th,
+octave, 3rd and 5th above, plus a 7th if written; Am = x02210), `stab`,
+`sustained`. Chords are always voiced in root position. Riff styles
+`open_chords` and `power_strum` use the section's or role's voicing too.
 
 ## Drum Grid
 
@@ -76,6 +81,10 @@ Each lane is a string. Length = resolution: 8 (8ths), 12 (8th triplets),
 16 (16ths), 24 (16th triplets), 32 (32nds — hat rolls).
 
 Characters: `x` hit, `.` rest, `g` ghost (low velocity), `a` accent.
+
+A grid spans 4 beats unless the pattern sets `"meter"` (`"3/4"`: a 12-step
+grid is one 3/4 bar). In a shorter bar the grid stops at the barline; in a
+longer bar it wraps around.
 
 `"layer": "electronic"` marks a pattern for the `electronic_drums` role (a
 drum machine such as UJAM Beatmaker layered with the kit, or carrying a
@@ -164,6 +173,8 @@ Names: `intro`, `verse`, `pre-chorus`, `chorus`, `post-chorus`, `drop`,
 | `double_track` | `identical`, `variation`, `octave` or `harmony` (how the takes relate here) |
 | `automation` | controller lanes over the section (see "Automation") |
 | `tempo` / `tempo_scale` | absolute BPM, or a multiple of the song tempo; the song tempo returns after |
+| `meter` | time signature here (`3/4`, `6/8`, `7/8`); micro-sections inherit it; everything after stays on the beat |
+| `tone` | instrument tone here: a tone name, or `{role: tone}` (e.g. `{"rhythm_guitar": "clean"}`) |
 
 Micro-sections inherit the parent's bindings and override them. They are
 addressable by dotted name (`verse2.B`, `breakdown.drop`). Drums, riffs and
@@ -257,10 +268,10 @@ Roles: `drums`, `electronic_drums`, `rhythm_guitar`, `bass`, `synth_bass`, `chor
 
 | Role | Styles |
 |---|---|
-| rhythm_guitar | `pedal_tone`, `gallop`, `chug`, `open_chords`, `tremolo`, `power_strum`, `clean_arp` |
+| rhythm_guitar | `pedal_tone`, `gallop`, `chug`, `open_chords`, `tremolo`, `power_strum`, `clean_arp`, `palm_eighths` |
 | bass / synth_bass | `sustained_root`, `walking`, `kick_locked` (aliases `sub_808*`), `doubled`, `root_eighths`, `octave`, `arpeggio`, `wobble` |
 | chords / pad | `stab`, `sustained`, `sparse_held`, `strum8`, `pulse4`, `trance_gate`, `follow_riff` |
-| melody / lead | `pentatonic_sparse`, `fast_arpeggio`, `stab`, `sustained_hook`, `harmonized_thirds`, `riff_octave`, `tremolo_lead` |
+| melody / lead | `pentatonic_sparse`, `fast_arpeggio`, `stab`, `sustained_hook`, `harmonized_thirds`, `riff_octave`, `tremolo_lead`, `vocal_line` (sung phrasing that breathes), `pedal_ostinato` (second guitar: moving note against a fixed high pedal, feedback bends) |
 
 - `gm` must match a key in `midi_types/gm_instruments.py` (General MIDI fallback / preview).
 - `vst` names an instrument map in `instruments/`. The CLI's `--vst role=slug` overrides it for any genre.
@@ -271,6 +282,7 @@ Roles: `drums`, `electronic_drums`, `rhythm_guitar`, `bass`, `synth_bass`, `chor
   - **harmony**: the right take plays a diatonic 3rd up.
 
   Palm-muted chugs stay identical in every mode. The section binding `double_track` overrides the mode. `takes: 4` adds an inner L2/R2 pair. Each take is humanized on its own.
+- `tones`: `{"clean": {"gm": "electric-guitar-clean", "vst": "odin-iii", "double_track": false}}`. In sections whose `tone` binding names it, the role's notes move to a separate `<Name> (<tone>)` track with that tone's instrument. A tone without a `vst` renders as General MIDI.
 - `play_in`: section names the role plays in. It is muted everywhere else (a trance lead only in choruses, a clean vocal only in the chorus).
 - `articulations`:
   - `pinch_harmonic_rate` (rhythm guitar)

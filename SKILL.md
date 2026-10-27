@@ -68,7 +68,8 @@ midi-agent-skill/
 │   ├── README.md
 │   ├── lo-fi-hip-hop.json             ← seeded, expanded
 │   ├── metalcore.json                 ← researched (web)
-│   ├── crabcore.json                  ← researched (web) — uses every field
+│   ├── crabcore.json                  ← researched (web)
+│   ├── post-hardcore.json             ← researched from Underoath's They're Only Chasing Safety
 │   └── scenecore.json                 ← seeded from Ace-Step DAW reference, expanded
 ├── instruments/                       ← VST / instrument maps (genre-independent)
 │   ├── README.md

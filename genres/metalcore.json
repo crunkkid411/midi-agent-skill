@@ -28,8 +28,8 @@
     "drums",
     "bass",
     "pad",
-    "melody",
     "lead",
+    "melody",
     "chords"
   ],
   "chord_progressions": [
@@ -287,7 +287,10 @@
             "lead",
             "pad"
           ],
-          "note": "Clean arpeggio alone"
+          "note": "Clean guitar arpeggio alone (its own clean-tone track)",
+          "tone": {
+            "rhythm_guitar": "clean"
+          }
         },
         {
           "name": "slam",
@@ -574,6 +577,13 @@
       },
       "articulations": {
         "pinch_harmonic_rate": 0.04
+      },
+      "tones": {
+        "clean": {
+          "gm": "electric-guitar-clean",
+          "vst": "odin-iii",
+          "double_track": false
+        }
       }
     },
     {
@@ -620,6 +630,22 @@
         "pre-chorus",
         "chorus"
       ]
+    },
+    {
+      "role": "melody",
+      "gm": "voice-oohs",
+      "register": [
+        55,
+        76
+      ],
+      "style": "vocal_line",
+      "velocity_range": [
+        0.6,
+        0.85
+      ],
+      "play_in": [
+        "chorus"
+      ]
     }
   ],
   "velocity_ranges": {
@@ -642,6 +668,10 @@
     "pad": [
       0.35,
       0.55
+    ],
+    "melody": [
+      0.6,
+      0.85
     ]
   },
   "principles": [
@@ -692,7 +722,7 @@
       "4x12_cab_ir",
       "bus_compression"
     ],
-    "notes": "Drums: Superior Drummer 3 (instruments/superior-drummer-3.json) — a metal kit (e.g. Metal Foundry / Hard Rock SDX) on the default map. Guitars: Solemn Tones Odin III (instruments/odin-iii.json) set to drop C, Amped Rhythm or Clean DI into an amp sim; L/R takes on separate instances or the dual panned preset. Bass: DI + distorted layer, any bass VST on GM-style note numbers. Pad: optional strings under choruses."
+    "notes": "Drums: Superior Drummer 3 (instruments/superior-drummer-3.json) — a metal kit (e.g. Metal Foundry / Hard Rock SDX) on the default map. Guitars: Solemn Tones Odin III (instruments/odin-iii.json) set to drop C, Amped Rhythm or Clean DI into an amp sim; L/R takes on separate instances or the dual panned preset. Bass: DI + distorted layer, any bass VST on GM-style note numbers. Pad: optional strings under choruses. The '(clean)' rhythm track is the clean intro: a second Odin III instance on Amped Clean (or any clean guitar). Melody is the clean-vocal guide line for the chorus."
   },
   "notes": "Riff-first layer order: rhythm_guitar renders before drums so breakdown kicks (kick_follow) and the bass (style 'doubled') lock to the chugs. Rhythm guitars are double-tracked with per-section take relationships. Render the whole song with --form."
 }

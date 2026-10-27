@@ -59,6 +59,8 @@ For a genre you need to understand:
 
 7. **Find the full song form** (fills `form`):
    - Map 2-3 reference songs section by section, including one-off sections (stop, pre-breakdown, build, final chorus) and which ones are optional.
+   - Chord sheets / tabs per song (Ultimate Guitar, guitartabs.cc, Chordify) give real progressions per section, tunings and performance notes (palm mute, meter switches). Convert them to Roman numerals.
+   - When the request names an album or artist rather than a genre, research the album (reviews, Wikipedia, tabs of 3+ songs), name the genre it belongs to, and add the album/artist as aliases.
 
 8. **Find what isn't notes** (fills section `automation`, `tempo_scale`, `double_track`, `play_in`):
    - Filter sweeps, sidechain pumping, risers, tape stops, wobble: where do they happen?
@@ -66,6 +68,10 @@ For a genre you need to understand:
    - Are guitars double/quad tracked, and do the takes differ (octave chords on one side in choruses)?
    - Which parts appear only in some sections (synth lead in choruses only, clean vocal in the chorus)?
    - Is there a drum-machine layer next to the kit (electronic genres, electronicore)?
+   - Any meter changes (a breakdown switching to 3/4, a 6/8 bridge)? Tabs often note them.
+   - Tone changes: clean or acoustic sections, a choir, a different keyboard sound?
+   - Who sings what? (screamed verses / clean choruses, two vocalists) Clean lines become `vocal_line` melody parts.
+   - Do the guitars play the same part, or different jobs (chords vs a high ostinato)?
 
 9. **Find the target instruments** (fills `instruments[].vst` and `instruments/<vst>.json` when the user names a VST):
    - WebSearch: `"{vst}" MIDI map keyswitches articulations manual`

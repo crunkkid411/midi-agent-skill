@@ -96,6 +96,10 @@ genre via `--vst role=slug`.
 
 - `scenecore.json` — ported from the Ace-Step DAW reference plan (140 BPM, A minor, trap/breakcore drums, hyperpop stabs).
 - `lo-fi-hip-hop.json` — Nujabes/J Dilla-style boom-bap chillhop. Swung rim/shaker variants, hats-only drops under a filter dip, half-time bridge, motif-based vibraphone, low-passed intro/outro. Beatmaker drums, Vital pad.
+- `post-hardcore.json` — 2000s post-hardcore / screamo, modelled on Underoath's *They're Only Chasing Safety*. Aliases: screamo, underoath, theyre-only-chasing-safety.
+  - Vocals: screamed verses vs a clean, drummer-sung chorus (`vocal_line`).
+  - Guitars: guitar 1 plays palm-muted 8ths and big open chords in drop D; guitar 2 plays a high ostinato with feedback bends.
+  - Harmony and arrangement: emo-pop minor loops from the album's songs, a maj7 bridge with a choir tone, a 3/4 breakdown, an acoustic break, electronica beats and keys.
 - `crabcore.json` — Attack Attack!/I See Stars-style electronicore in drop C#.
   - Guitars: double-tracked, with section-dependent take modes.
   - Synths: trance-gated, pumping synths that follow the breakdown chugs; a wobble-bass breakdown; a pitch-riser build; a tape-stop stop.
