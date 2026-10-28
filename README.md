@@ -69,7 +69,7 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 │   ├─ music.py                      # Composition / Track / Note / Section
 │   ├─ genre_profile.py              # Profile dataclasses
 │   └─ gm_instruments.py
-├─ resources/                        # Music theory lookup references
+├─ resources/                        # Default theory refs from the reference albums (classical-reference/ = archive)
 ├─ plans/                            # Per-song briefs + composition.json
 ├─ claude_code/                      # Ace-Step DAW reference (for porting)
 ├─ soundfonts/                       # Place A320U.sf2 here

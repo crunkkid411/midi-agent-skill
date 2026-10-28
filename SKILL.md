@@ -105,7 +105,7 @@ midi-agent-skill/
 │   ├── instrument_map.py              ← VST map loader
 │   └── gm_instruments.py
 ├── tests/test_pipeline.py             ← python -m unittest discover -s tests
-├── resources/                         ← lookup-only theory references
+├── resources/                         ← default theory references (reference albums); classical-reference/ = archive
 ├── plans/                             ← per-song briefs + composition.json
 ├── claude_code/                       ← Ace-Step DAW reference (read-only; will be deleted later)
 └── output/                            ← generated .mid / .wav files
@@ -263,9 +263,18 @@ and `drum` (lane) per note; `is_drum`, `role`, `vst` and `pan` per track;
 
 ## Music Theory References (Lookup Only)
 
-The `resources/` directory has reference files (chord-progressions.md,
-voice-leading.md, modes-scales.md, counterpoint.md, etc). These exist
-for the agent to **look up specific things** mid-task. Don't read them
-all — read the one that matches the current question. For genre-specific
-research, prefer the web search workflow in
-`workflows/music-theory-research.md` over these generic references.
+The `resources/` directory holds the **default** theory references
+(chord-progressions.md, rhythm-patterns.md, voice-leading.md,
+modes-scales.md, music-theory.md, counterpoint.md, orchestration.md). They
+come from the user's reference albums (3OH!3, Breathe Carolina, Lil Lotus,
+Sueco, I Set My Friends On Fire, Attack Attack!, Lady Gaga *The Fame*,
+6arelyhuman, Ayesha Erotica, Underoath). The evidence is in
+`resources/reference-albums.md`. Read only the one file that matches the
+current question.
+
+Precedence: **a genre profile in `genres/` beats `resources/`, and
+`resources/` beats `resources/classical-reference/`.** The classical folder
+(species counterpoint, "no parallel fifths", orchestra ranges) is used only
+when the user asks for classical, orchestral, choral or jazz writing. For a
+new genre, prefer the research workflow in
+`workflows/music-theory-research.md`.
