@@ -1,0 +1,24 @@
+{
+  "_comment": "Copy this to config.json and fill in. Never commit config.json (it has keys).",
+
+  "daily_spend_cap_usd": 5.0,
+
+  "tier_provider": {
+    "local-model": "ollama",
+    "api-cheap": "gemini",
+    "heavy-agent": "anthropic"
+  },
+
+  "providers": {
+    "ollama":    { "url": "http://localhost:11434", "model": "qwen2.5:7b" },
+    "lmstudio":  { "url": "http://localhost:1234/v1", "model": "local-model" },
+    "gemini":    { "url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-2.5-flash", "api_key": "PUT_GEMINI_KEY_HERE" },
+    "openai":    { "url": "https://api.openai.com/v1", "model": "gpt-4o-mini", "api_key": "PUT_OPENAI_KEY_HERE" },
+    "anthropic": { "model": "claude-sonnet-4-6", "api_key": "PUT_ANTHROPIC_KEY_HERE" }
+  },
+
+  "nodes": {
+    "pc":  { "tailscale_host": "windows-pc",  "role": "hands" },
+    "vps": { "tailscale_host": "my-vps",      "role": "brain" }
+  }
+}
