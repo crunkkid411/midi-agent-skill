@@ -78,6 +78,14 @@ run Python (Claude Code, Claude API, other agent harnesses) can drive it.
 
 ---
 
+## VST3 Plug-in for Cubase
+
+`vst3/midi-agent/` holds **MIDI Agent**, a VST3 instrument that runs this
+skill inside Cubase: generate from genre profiles, edit every segment in a
+piano roll, play in sync with the host, drag segments onto tracks as `.mid`
+or `.wav`. See [vst3/midi-agent/README.md](vst3/midi-agent/README.md) and
+`vst3/midi-agent/docs/`.
+
 ## Quick Start
 
 ```bash

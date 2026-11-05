@@ -6,6 +6,10 @@
 # Generated composition.json files; keep README + intentionally committed examples
 /plans/*.composition.json
 
+# C++ build trees (VST3 plug-in)
+/build/
+/vst3/midi-agent/build/
+
 # Python
 __pycache__/
 *.pyc

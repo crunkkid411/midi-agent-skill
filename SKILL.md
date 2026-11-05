@@ -105,6 +105,7 @@ midi-agent-skill/
 │   ├── instrument_map.py              ← VST map loader
 │   └── gm_instruments.py
 ├── tests/test_pipeline.py             ← python -m unittest discover -s tests
+├── vst3/midi-agent/                   ← the VST3 plug-in for Cubase (C++, see its README and docs/)
 ├── resources/                         ← default theory references (reference albums); classical-reference/ = archive
 ├── plans/                             ← per-song briefs + composition.json
 ├── claude_code/                       ← Ace-Step DAW reference (read-only; will be deleted later)
