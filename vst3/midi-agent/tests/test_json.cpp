@@ -33,9 +33,12 @@ TEST_CASE (json_round_trips_and_keeps_key_order)
 {
     Json v;
     std::string err;
-    CHECK (Json::parse (R"({"z": 1, "a": {"q": [], "p": {}}, "m": "s\"q"})", v, err));
+    // MSVC cannot stringize a raw string literal inside a macro argument.
+    const std::string input = R"({"z": 1, "a": {"q": [], "p": {}}, "m": "s\"q"})";
+    const std::string expected = R"({"z":1,"a":{"q":[],"p":{}},"m":"s\"q"})";
+    CHECK (Json::parse (input, v, err));
     std::string one = v.dump (0);
-    CHECK_EQ (one, std::string(R"({"z":1,"a":{"q":[],"p":{}},"m":"s\"q"})"));
+    CHECK_EQ (one, expected);
     std::string pretty = v.dump (2);
     Json again;
     CHECK (Json::parse (pretty, again, err));

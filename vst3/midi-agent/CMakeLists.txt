@@ -168,7 +168,7 @@ if(MIDIAGENT_BUILD_PLUGIN)
         endif()
         add_dependencies(midiagent_host_smoke MidiAgent)
         add_test(NAME midiagent_host_smoke
-            COMMAND midiagent_host_smoke "$<TARGET_PROPERTY:MidiAgent,SMTG_PLUGIN_PACKAGE_PATH>"
+            COMMAND midiagent_host_smoke "$<GENEX_EVAL:$<TARGET_PROPERTY:MidiAgent,SMTG_PLUGIN_PACKAGE_PATH>>"
                     "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/scenecore-8bar.composition.json")
     endif()
 
