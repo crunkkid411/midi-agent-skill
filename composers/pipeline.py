@@ -41,6 +41,7 @@ from .automation import apply_automation
 from .doubling import make_takes
 from .profile import get_instrument
 from .structure import leaf_sections
+from .variation import vary_sections
 from midi_types.genre_profile import DoubleTrack
 
 
@@ -67,6 +68,8 @@ def compose(
     use_form: bool = False,
     vst_overrides: Optional[Dict[str, str]] = None,
     context: Optional[Dict[str, Track]] = None,
+    variation: float = 0.0,
+    pools: Optional[Dict] = None,
 ) -> Composition:
     """Build a full Composition by running each layer in order.
 
@@ -88,6 +91,8 @@ def compose(
         context: existing tracks keyed by role that later layers should hear
             but that are not re-rendered or returned (regenerate_section uses
             this so regenerated drums still follow the existing riff).
+        variation: 0-1, share of the sections' bound choices (groove, progression,
+            riff style, ...) re-picked from `pools` (composers/variation.py).
     """
     overrides = overrides or {}
     context = context or {}
@@ -102,6 +107,7 @@ def compose(
     if sections is None:
         sections = plan_sections(profile, None if use_form else bars, rng=stream("structure"),
                                  use_form=use_form)
+        vary_sections(sections, pools or {}, variation, stream("variation"))
     timeline, _ = build_timeline(profile, sections, chosen_key, stream("harmony"))
 
     available_roles = {i.role for i in profile.instruments} | set(overrides)
@@ -241,6 +247,8 @@ def regenerate_section(
     layers: Optional[List[str]] = None,
     seed: Optional[int] = None,
     vst_overrides: Optional[Dict[str, str]] = None,
+    variation: float = 0.0,
+    pools: Optional[Dict] = None,
 ) -> Composition:
     """Re-render only the notes inside `section_name` (e.g. 'verse2.B') for the
     requested layers. Notes outside the section are preserved, and the
@@ -262,10 +270,19 @@ def regenerate_section(
                        beats_per_bar=s.beats_per_bar, beat_offset=s.start_beat() - shift,
                        beat_length=s.beat_length)
 
+    # A new take: re-pick some of the section's bound choices first and keep them
+    # in the song, so later regens of other layers agree with this one.
+    if variation > 0 and pools:
+        family = [target] + [s for s in composition.sections if s.name.startswith(target.name + ".")]
+        vary_sections(family, pools, variation,
+                      random.Random(f"{seed}:variation") if seed is not None else random.Random())
+
     bars_in = target.end_bar - target.start_bar + 1
     if target.is_micro:
+        parent = next((s for s in composition.sections if s.name == target.name.partition(".")[0]), None)
         sub_sections = [Section(name=target.name.partition(".")[0], start_bar=1, end_bar=bars_in,
-                                density=target.density, bindings=dict(target.bindings),
+                                density=target.density,
+                                bindings=dict(parent.bindings if parent else target.bindings),
                                 beats_per_bar=target.beats_per_bar, beat_offset=0.0),
                         rebase(target)]
     else:
@@ -302,8 +319,15 @@ def regenerate_section(
             n for n in original.notes
             if n.start is None or not (shift <= n.start < shift + window)
         ]
-        sub_track = (next((t for t in sub.tracks if t.name == original.name), None)
-                     or next((t for t in sub.tracks if _track_role(t) == role), None))
+        # Match by name. Fall back to role only when no track of this role matched by
+        # name: a tone track ("Rhythm Guitar (clean)") stays silent in a section that
+        # does not use that tone instead of getting the main guitar's notes.
+        sub_track = next((t for t in sub.tracks if t.name == original.name), None)
+        if sub_track is None:
+            sub_names = {t.name for t in sub.tracks}
+            same_role = [o for o in composition.tracks if _track_role(o) == role]
+            if not any(o.name in sub_names for o in same_role) and same_role and same_role[0] is original:
+                sub_track = next((t for t in sub.tracks if _track_role(t) == role), None)
         if sub_track:
             for n in sub_track.notes:
                 if n.start is not None:

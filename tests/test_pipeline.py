@@ -501,3 +501,47 @@ class TestRendering(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VariationTests(unittest.TestCase):
+    """Regen with variation re-picks bound choices; blends use the 2nd genre;
+    tone tracks stay silent where their tone isn't used."""
+
+    def test_regen_variation_changes_bindings_and_keeps_tone_tracks_silent(self):
+        from composers.variation import binding_pools
+        from composers.profile import blend_profiles
+        p = load_profile("metalcore")
+        song = compose(p, title="v", use_form=True, seed=4)
+        pools = binding_pools(p, [(p, 1.0)])
+        target = next(s for s in song.sections if s.is_micro)
+        before = {k: target.bindings.get(k) for k in ("drum_pattern", "riff_style", "progression")}
+        changed = False
+        for seed in range(6):
+            again = regenerate_section(copy.deepcopy(song), p, target.name, seed=seed,
+                                       variation=1.0, pools=pools)
+            t = next(s for s in again.sections if s.name == target.name)
+            changed |= {k: t.bindings.get(k) for k in before} != before
+            lo, hi = t.start_beat(), t.end_beat()
+            for orig in song.tracks:
+                if "(" not in orig.name:
+                    continue  # tone tracks only
+                had = sum(1 for n in orig.notes if lo <= n.start < hi)
+                now = sum(1 for n in next(x for x in again.tracks if x.name == orig.name).notes
+                          if lo <= n.start < hi)
+                if had == 0:
+                    self.assertEqual(now, 0, f"{orig.name} got notes in {target.name}")
+        self.assertTrue(changed, "variation=1 never changed a bound choice")
+
+    def test_even_blend_uses_second_genre(self):
+        from composers.variation import binding_pools, blend_amount
+        from composers.profile import blend_profiles
+        a, b = load_profile("metalcore"), load_profile("lo-fi-hip-hop")
+        blended = blend_profiles([(a, 1.0), (b, 1.0)])
+        song = compose(blended, title="b", use_form=True, seed=3, variation=blend_amount([1, 1]),
+                       pools=binding_pools(blended, [(a, 1.0), (b, 1.0)]))
+        lofi_progs = {cp.name for cp in b.chord_progressions}
+        used = set()
+        for s in song.sections:
+            v = s.bindings.get("progression")
+            used.update(v if isinstance(v, list) else [v])
+        self.assertTrue(used & lofi_progs, "no lo-fi progression in an even blend")

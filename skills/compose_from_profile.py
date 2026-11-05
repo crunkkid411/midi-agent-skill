@@ -72,6 +72,9 @@ def parse_args() -> argparse.Namespace:
                    help="Composition title (also output filename stem).")
     p.add_argument("--seed", type=int, default=None,
                    help="Deterministic seed.")
+    p.add_argument("--variation", type=float, default=0.0,
+                   help="0-1: how far a new take strays from the song's saved choices "
+                        "(groove, progression, riff style). 0 = same parts, new timing; 1 = all re-picked.")
     p.add_argument("--layers", default=None,
                    help="Comma-separated layer roles to render: chords,pad,rhythm_guitar,drums,bass,melody,lead. "
                         "Default: all available.")
@@ -144,6 +147,9 @@ def main() -> int:
 
     profiles = [load_profile(s) for s in slugs]
     profile = blend_profiles(list(zip(profiles, weights))) if len(profiles) > 1 else profiles[0]
+    from composers.variation import binding_pools, blend_amount
+    pools = binding_pools(profile, list(zip(profiles, weights)))
+    variation = max(0.0, min(1.0, args.variation))
     if args.tuning:
         profile.tuning = args.tuning
     vst_overrides = parse_vst(args.vst)
@@ -164,7 +170,8 @@ def main() -> int:
             base = Composition.from_dict(json.load(f))
         if args.regenerate:
             composition = regenerate_section(base, profile, args.regenerate, layers=layers,
-                                             seed=args.seed, vst_overrides=vst_overrides)
+                                             seed=args.seed, vst_overrides=vst_overrides,
+                                             variation=variation, pools=pools)
         else:
             composition = base
         # On resume, default to keeping the original title and overwriting in place
@@ -177,6 +184,7 @@ def main() -> int:
             profile, title=args.title, bars=args.bars, bpm=args.bpm, key=args.key,
             seed=args.seed, overrides=overrides, layers=layers,
             use_form=args.form, vst_overrides=vst_overrides,
+            variation=max(variation, blend_amount(weights)), pools=pools,
         )
         composition.title = args.title
         default_out = Path(__file__).parent.parent / "plans" / f"{args.title}.composition.json"
