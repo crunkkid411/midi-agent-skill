@@ -48,8 +48,8 @@ public:
 private:
     enum Tag
     {
-        kTagGenreA = 1, kTagGenreB, kTagGenreC, kTagWeights, kTagBars, kTagBpm, kTagSeed, kTagKey, kTagTitle,
-        kTagPython, kTagSkillRoot, kTagSnap, kTagGain,
+        kTagGenreA = 1, kTagGenreB, kTagGenreC, kTagBars, kTagBpm, kTagKey, kTagTitle,
+        kTagSkillRoot, kTagSnap, kTagGain, kTagMixA, kTagMixB, kTagMixC, kTagSurprise,
     };
 
     void buildHeader ();
@@ -58,7 +58,9 @@ private:
     void refreshGenreMenus ();
     void refreshSettingsText ();
     void refreshAll ();
-    void selectSegment (int index);
+    void selectSegment (int index, bool ctrl, bool shift);
+    void refreshSurpriseLabel ();
+    void checkLoop ();
     void selectTrack (int index);
     void onNoteEdit ();
 
@@ -71,8 +73,9 @@ private:
     void actionClearSegment ();
     void actionRenderWav (bool wholeSong);
     void actionFindSkill ();
-    void togglePreview ();
+    void toggleLoop ();
     std::string prepareSegmentMidi (bool trackOnly);
+    Composition selectionClip (int trackIndex) const;
     std::string prepareSegmentWav ();
     std::string autoSavePath () const;
     bool writeCompositionForPython (std::string& path);
@@ -88,13 +91,16 @@ private:
     TrackListView* tracks_ {nullptr};
     PianoRollView* roll_ {nullptr};
     LogView* logView_ {nullptr};
-    NeonButton* previewButton_ {nullptr};
+    NeonButton* loopButton_ {nullptr};
     NeonButton* synthButton_ {nullptr};
     NeonButton* midiOutButton_ {nullptr};
     NeonButton* formButton_ {nullptr};
     NeonButton* generateButton_ {nullptr};
     NeonLabel* segLabel_ {nullptr};
     NeonLabel* settingsStatus_ {nullptr};
+    NeonLabel* surpriseLabel_ {nullptr};
+    VSTGUI::CSlider* mixSliders_[3] {nullptr, nullptr, nullptr};
+    VSTGUI::CSlider* surpriseSlider_ {nullptr};
     VSTGUI::CSlider* gainSlider_ {nullptr};
     VSTGUI::COptionMenu* genreMenus_[3] {nullptr, nullptr, nullptr};
     VSTGUI::COptionMenu* snapMenu_ {nullptr};
@@ -104,6 +110,7 @@ private:
     uint32_t pushedRevision_ {0};
     int64_t lastEditMillis_ {0};
     int tick_ {0};
+    int64_t lastLocateMillis_ {0};
 };
 
 } // namespace midiagent

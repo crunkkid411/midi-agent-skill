@@ -27,6 +27,7 @@ struct ComposeRequest
     std::string title {"midi-agent"};
     int seed {-1};        // -1 = random
     std::string vstMap;   // "drums=superior-drummer-3,bass=serum-2"
+    double variation {0.0}; // 0 = the genre's own choices, 1 = re-pick every groove/progression/style
 };
 
 struct RegenerateRequest
@@ -35,7 +36,9 @@ struct RegenerateRequest
     std::string section;     // "verse2.B"
     std::vector<std::string> layers; // roles to regenerate, empty = all
     std::vector<std::string> genres;
+    std::vector<double> weights;     // optional, same length as genres
     int seed {-1};
+    double variation {0.0};
 };
 
 struct AgentResult

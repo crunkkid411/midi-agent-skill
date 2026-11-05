@@ -53,6 +53,12 @@ set(midiagent_core_sources
     core/agent_bridge.cpp
     core/platform.h
     core/platform.cpp
+    core/instrument_map.h
+    core/instrument_map.cpp
+    core/part_buses.h
+    core/part_buses.cpp
+    core/transport_remote.h
+    core/transport_remote.cpp
 )
 
 add_library(midiagent_core STATIC ${midiagent_core_sources})
@@ -80,6 +86,7 @@ if(MIDIAGENT_BUILD_TESTS)
         tests/test_synth.cpp
         tests/test_sequencer.cpp
         tests/test_agent_bridge.cpp
+        tests/test_instrument_map.cpp
     )
     target_link_libraries(midiagent_tests PRIVATE midiagent_core)
     target_compile_definitions(midiagent_tests PRIVATE

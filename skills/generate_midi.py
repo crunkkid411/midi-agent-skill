@@ -181,7 +181,9 @@ def _write(composition: Composition, tracks, path: Path, channel_base: int = 0,
                         banded = imap.velocity_for(note.articulation, rel)
                         if banded is not None:
                             velocity = max(1, min(127, banded))
-                        ks = imap.keyswitch_for(note.articulation)
+                        else:   # a band is a deliberate mute/pinch velocity; limit only the rest
+                            velocity = imap.limit_velocity(note.articulation, velocity)
+                        ks = imap.keyswitch_for(imap.directed(note.articulation, time))
                         if ks is not None:
                             keyswitch_spans.append((ks, max(0.0, time - imap.keyswitch_lead), time + duration))
                         elif note.articulation and "keyswitch" in imap.articulation_mode \

@@ -1,4 +1,5 @@
 #include "source/editor.h"
+#include "core/instrument_map.h"
 #include "core/midifile.h"
 #include "core/platform.h"
 #include "core/renderer.h"
@@ -78,6 +79,21 @@ void styleTextEdit (CTextEdit* e)
     e->setTextInset (CPoint (6, 0));
 }
 
+void tip (CView* v, const char* text)
+{
+    v->setTooltipText (text);
+}
+
+CSlider* makeSlider (const CRect& r, IControlListener* l, int32_t tag, const CColor& color)
+{
+    auto* sl = new CSlider (r, l, tag, 0, static_cast<int32_t> (r.getWidth ()) - 10, nullptr, nullptr);
+    sl->setDrawStyle (CSlider::kDrawFrame | CSlider::kDrawBack | CSlider::kDrawValue);
+    sl->setFrameColor (theme::kChromeLo);
+    sl->setBackColor (CColor (6, 4, 12));
+    sl->setValueColor (color);
+    return sl;
+}
+
 void styleMenu (COptionMenu* m)
 {
     m->setBackColor (CColor (6, 4, 12));
@@ -110,7 +126,9 @@ bool PLUGIN_API MidiAgentEditor::open (void* parent, const PlatformType& platfor
     const double W = kWidth, H = kHeight;
     header_ = new HeaderView (CRect (0, 0, W, kHeaderH), s_);
     frame->addView (header_);
-    strip_ = new SegmentStripView (CRect (0, kHeaderH, W, kHeaderH + kStripH), s_, [this] (int i) { selectSegment (i); });
+    strip_ = new SegmentStripView (CRect (0, kHeaderH, W, kHeaderH + kStripH), s_,
+                                   [this] (int i, bool ctrl, bool shift) { selectSegment (i, ctrl, shift); });
+    tip (strip_, "Click a section to jump Cubase there. Ctrl+click adds or removes a section, Shift+click selects every section up to the one you click.");
     frame->addView (strip_);
 
     const double top = kHeaderH + kStripH + kActionH;
@@ -118,7 +136,23 @@ bool PLUGIN_API MidiAgentEditor::open (void* parent, const PlatformType& platfor
     tracks_ = new TrackListView (CRect (0, top, kTrackW, bottom), s_, [this] (TrackListView::Action a, int i) {
         switch (a)
         {
-            case TrackListView::Action::Select: selectTrack (i); break;
+            case TrackListView::Action::Select:
+            {
+                selectTrack (i);
+                // sound the part: its first note in this section, else a middle note
+                const Track& t = s_->comp.tracks[static_cast<size_t> (i)];
+                const Segment* seg = s_->segment ();
+                const Note* first = nullptr;
+                for (const Note& n : t.notes)
+                    if (!seg || (n.start >= seg->startTick && n.start < seg->endTick))
+                    {
+                        first = &n;
+                        break;
+                    }
+                ctrl_->sendAudition (i, first ? first->pitch : (t.isDrum ? 38 : 60), first ? first->velocity : 0.8,
+                                     first ? first->drum : std::string (t.isDrum ? "snare" : ""));
+                break;
+            }
             case TrackListView::Action::Mute:
             {
                 Track& t = s_->comp.tracks[static_cast<size_t> (i)];
@@ -139,6 +173,9 @@ bool PLUGIN_API MidiAgentEditor::open (void* parent, const PlatformType& platfor
     });
     frame->addView (tracks_);
     roll_ = new PianoRollView (CRect (kTrackW, top, W, bottom), s_, [this] { onNoteEdit (); });
+    roll_->setOnAudition ([this] (int pitch, double velocity, const std::string& lane) {
+        ctrl_->sendAudition (s_->selectedTrack, pitch, velocity, lane);
+    });
     frame->addView (roll_);
 
     logView_ = new LogView (CRect (8, bottom + 8, 600, H - 8), &s_->log);
@@ -147,6 +184,7 @@ bool PLUGIN_API MidiAgentEditor::open (void* parent, const PlatformType& platfor
     buildHeader ();
     buildActionBar ();
     buildGeneratePanel ();
+    frame->enableTooltips (true);
 
     dirtyEach_ = {header_, strip_, roll_};
 #if SMTG_OS_LINUX
@@ -177,9 +215,11 @@ void PLUGIN_API MidiAgentEditor::close ()
     tracks_ = nullptr;
     roll_ = nullptr;
     logView_ = nullptr;
-    previewButton_ = synthButton_ = midiOutButton_ = formButton_ = generateButton_ = nullptr;
-    segLabel_ = settingsStatus_ = nullptr;
-    gainSlider_ = nullptr;
+    loopButton_ = synthButton_ = midiOutButton_ = formButton_ = generateButton_ = nullptr;
+    segLabel_ = settingsStatus_ = surpriseLabel_ = nullptr;
+    gainSlider_ = surpriseSlider_ = nullptr;
+    for (auto& m : mixSliders_)
+        m = nullptr;
     snapMenu_ = nullptr;
     for (auto& m : genreMenus_)
         m = nullptr;
@@ -193,20 +233,19 @@ void PLUGIN_API MidiAgentEditor::close ()
 void MidiAgentEditor::buildHeader ()
 {
     double x = 580;
-    auto button = [&] (const char* title, double w, std::function<void (NeonButton&)> f) {
+    auto button = [&] (const char* title, double w, const char* help, std::function<void (NeonButton&)> f) {
         auto* b = new NeonButton (CRect (x, 12, x + w, 40), title, std::move (f));
+        tip (b, help);
         frame->addView (b);
         x += w + 6;
         return b;
     };
-    button ("NEW", 60, [this] (NeonButton&) { actionNew (); });
-    button ("OPEN", 66, [this] (NeonButton&) { actionOpen (); });
-    button ("SAVE", 62, [this] (NeonButton&) { actionSave (false); });
-    button ("SAVE AS", 80, [this] (NeonButton&) { actionSave (true); });
-    button ("PANIC", 70, [this] (NeonButton&) {
+    button ("NEW", 60, "Start an empty song (keeps the generate settings).", [this] (NeonButton&) { actionNew (); });
+    button ("OPEN", 66, "Open a song you saved before.", [this] (NeonButton&) { actionOpen (); });
+    button ("SAVE", 62, "Save the song (it is also saved inside the Cubase project).", [this] (NeonButton&) { actionSave (false); });
+    button ("SAVE AS", 80, "Save the song under a new name.", [this] (NeonButton&) { actionSave (true); });
+    button ("PANIC", 70, "Stuck notes? This stops every note right now.", [this] (NeonButton&) {
         ctrl_->sendPanic ();
-        if (previewButton_)
-            previewButton_->setHot (false);
         log ("panic: all notes off");
     });
 
@@ -215,21 +254,20 @@ void MidiAgentEditor::buildHeader ()
         ctrl_->setParam (kParamSynthOn, b.isHot () ? 1.0 : 0.0);
     });
     synthButton_->setToggle (true);
+    tip (synthButton_, "The plug-in's own sketch sounds. Turn off when your real instruments (Odin, SD3, Serum...) play the parts.");
     frame->addView (synthButton_);
     x += 78;
     midiOutButton_ = new NeonButton (CRect (x, 44, x + 86, 66), "MIDI OUT", [this] (NeonButton& b) {
         ctrl_->setParam (kParamMidiOut, b.isHot () ? 1.0 : 0.0);
     });
     midiOutButton_->setToggle (true);
+    tip (midiOutButton_, "Send every part to its own MIDI output so the instrument tracks in Cubase play it.");
     frame->addView (midiOutButton_);
     x += 92;
     frame->addView (new NeonLabel (CRect (x, 44, x + 44, 66), "LEVEL", theme::tinyFont (), theme::kTextDim));
     x += 44;
-    gainSlider_ = new CSlider (CRect (x, 48, x + 150, 62), this, kTagGain, 0, 140, nullptr, nullptr);
-    gainSlider_->setDrawStyle (CSlider::kDrawFrame | CSlider::kDrawBack | CSlider::kDrawValue);
-    gainSlider_->setFrameColor (theme::kChromeLo);
-    gainSlider_->setBackColor (CColor (6, 4, 12));
-    gainSlider_->setValueColor (theme::kMagenta);
+    gainSlider_ = makeSlider (CRect (x, 48, x + 150, 62), this, kTagGain, theme::kMagenta);
+    tip (gainSlider_, "Volume of the plug-in's own sketch sounds.");
     frame->addView (gainSlider_);
 }
 
@@ -237,29 +275,33 @@ void MidiAgentEditor::buildActionBar ()
 {
     const double y0 = kHeaderH + kStripH + 5, y1 = y0 + 28;
     double x = 8;
-    segLabel_ = new NeonLabel (CRect (x, y0, x + 140, y1), "SEGMENT", theme::labelFont (), theme::kMagenta);
+    segLabel_ = new NeonLabel (CRect (x, y0, x + 150, y1), "SEGMENT", theme::labelFont (), theme::kMagenta);
     segLabel_->setGlow (true);
     frame->addView (segLabel_);
-    x += 146;
+    x += 156;
 
-    auto button = [&] (const char* title, double w, std::function<void (NeonButton&)> f) {
+    auto button = [&] (const char* title, double w, const char* help, std::function<void (NeonButton&)> f) {
         auto* b = new NeonButton (CRect (x, y0, x + w, y1), title, std::move (f));
+        tip (b, help);
         frame->addView (b);
         x += w + 6;
         return b;
     };
-    auto chip = [&] (const char* title, double w, std::function<std::string ()> prep) {
+    auto chip = [&] (const char* title, double w, const char* help, std::function<std::string ()> prep) {
         auto* c = new DragChip (CRect (x, y0, x + w, y1), title, std::move (prep));
+        tip (c, help);
         frame->addView (c);
         x += w + 6;
         return c;
     };
 
-    previewButton_ = button ("PREVIEW LOOP", 100, [this] (NeonButton&) { togglePreview (); });
-    previewButton_->setToggle (true);
-    button ("REGEN SEG", 86, [this] (NeonButton&) { actionRegenerate (false); });
-    button ("REGEN TRACK", 98, [this] (NeonButton&) { actionRegenerate (true); });
-    button ("CLEAR", 58, [this] (NeonButton&) { actionClearSegment (); });
+    loopButton_ = button ("LOOP", 58, "Loop the selected sections. Press play in Cubase: it jumps back to the start of the selection at the end.",
+                          [this] (NeonButton&) { toggleLoop (); });
+    loopButton_->setToggle (true);
+    button ("REGEN SEG", 86, "New idea for the selected sections, every part. Each press gives something different (see SURPRISE).",
+            [this] (NeonButton&) { actionRegenerate (false); });
+    button ("REGEN TRACK", 98, "New idea for the selected part only, in the selected sections.", [this] (NeonButton&) { actionRegenerate (true); });
+    button ("CLEAR", 58, "Delete the selected part's notes in the selected sections.", [this] (NeonButton&) { actionClearSegment (); });
 
     frame->addView (new NeonLabel (CRect (x, y0, x + 36, y1), "SNAP", theme::tinyFont (), theme::kTextDim));
     x += 36;
@@ -267,26 +309,34 @@ void MidiAgentEditor::buildActionBar ()
     styleMenu (snapMenu_);
     for (const auto& sn : kSnaps)
         snapMenu_->addEntry (sn.label);
+    tip (snapMenu_, "Grid for drawing and moving notes in the piano roll (1/16 = sixteenth notes).");
     frame->addView (snapMenu_);
     x += 76;
 
-    chip ("DRAG MIDI \xC2\xB7 SEG", 118, [this] { return prepareSegmentMidi (false); });
-    chip ("DRAG MIDI \xC2\xB7 TRACK", 126, [this] { return prepareSegmentMidi (true); });
-    chip ("DRAG WAV \xC2\xB7 SEG", 116, [this] { return prepareSegmentWav (); });
-    button ("RENDER WAV...", 104, [this] (NeonButton&) { actionRenderWav (false); });
-    button ("RENDER SONG...", 108, [this] (NeonButton&) { actionRenderWav (true); });
+    chip ("DRAG MIDI \xC2\xB7 SEG", 118, "Drag onto Cubase: every part of the selected sections as MIDI, keyswitches included.",
+          [this] { return prepareSegmentMidi (false); });
+    chip ("DRAG MIDI \xC2\xB7 TRACK", 126, "Drag onto a Cubase track: only the selected part, keyswitches included.",
+          [this] { return prepareSegmentMidi (true); });
+    chip ("DRAG WAV \xC2\xB7 SEG", 116, "Drag onto Cubase: the selected sections as audio (sketch sounds).", [this] { return prepareSegmentWav (); });
+    button ("RENDER WAV...", 104, "Save the selected sections as a WAV file (sketch sounds).", [this] (NeonButton&) { actionRenderWav (false); });
+    button ("RENDER SONG...", 108, "Save the whole song as a WAV file (sketch sounds).", [this] (NeonButton&) { actionRenderWav (true); });
 }
 
 void MidiAgentEditor::buildGeneratePanel ()
 {
     const double x0 = 612, top = kHeight - kBottomH + 8;
-    auto label = [&] (double x, double y, double w, const char* text) {
-        frame->addView (new NeonLabel (CRect (x, y, x + w, y + 24), text, theme::tinyFont (), theme::kTextDim));
+    auto label = [&] (double x, double y, double w, const char* text, const char* help = nullptr) {
+        auto* l = new NeonLabel (CRect (x, y, x + w, y + 24), text, theme::tinyFont (), theme::kTextDim);
+        if (help)
+            tip (l, help);
+        frame->addView (l);
+        return l;
     };
-    auto edit = [&] (Tag tag, double x, double y, double w, const char* placeholder) {
+    auto edit = [&] (Tag tag, double x, double y, double w, const char* placeholder, const char* help) {
         auto* e = new CTextEdit (CRect (x, y + 2, x + w, y + 24), this, tag);
         styleTextEdit (e);
         e->setPlaceholderString (placeholder);
+        tip (e, help);
         frame->addView (e);
         edits_[tag] = e;
         return e;
@@ -301,47 +351,65 @@ void MidiAgentEditor::buildGeneratePanel ()
         double x = x0 + 96 + i * 170;
         genreMenus_[i] = new COptionMenu (CRect (x, y + 2, x + 164, y + 24), this, static_cast<int32_t> (kTagGenreA + i));
         styleMenu (genreMenus_[i]);
+        tip (genreMenus_[i], "A style for the song. Pick up to three to blend them.");
         frame->addView (genreMenus_[i]);
     }
 
-    y += 32;
-    label (x0, y, 60, "WEIGHTS");
-    edit (kTagWeights, x0 + 62, y, 110, "0.6,0.4");
-    label (x0 + 182, y, 40, "BARS");
-    edit (kTagBars, x0 + 218, y, 48, "8");
-    label (x0 + 276, y, 36, "BPM");
-    edit (kTagBpm, x0 + 306, y, 52, "auto");
-    label (x0 + 368, y, 40, "SEED");
-    edit (kTagSeed, x0 + 404, y, 60, "random");
-    label (x0 + 474, y, 32, "KEY");
-    edit (kTagKey, x0 + 500, y, 70, "auto");
-    formButton_ = new NeonButton (CRect (x0 + 576, y + 1, x0 + 622, y + 25), "FORM", [this] (NeonButton& b) {
+    y += 28;
+    label (x0, y, 90, "HOW MUCH", "How much of each style goes into the blend. Slide right = more of that style.");
+    for (int i = 0; i < 3; ++i)
+    {
+        double x = x0 + 96 + i * 170;
+        mixSliders_[i] = makeSlider (CRect (x, y + 6, x + 164, y + 20), this, static_cast<int32_t> (kTagMixA + i), theme::kCyan);
+        mixSliders_[i]->setValueNormalized (1.0f);
+        tip (mixSliders_[i], "How much of this style goes into the blend. Slide right = more of it.");
+        frame->addView (mixSliders_[i]);
+    }
+
+    y += 26;
+    surpriseLabel_ = label (x0, y, 210, "SURPRISE", "How far each GENERATE / REGEN may wander from the style's usual grooves, chords and riffs.");
+    surpriseSlider_ = makeSlider (CRect (x0 + 214, y + 6, x0 + 400, y + 20), this, kTagSurprise, theme::kLime);
+    tip (surpriseSlider_, "Left = stay close to the style. Right = new grooves, chords and riffs every time.");
+    frame->addView (surpriseSlider_);
+    label (x0 + 410, y, 36, "BARS");
+    edit (kTagBars, x0 + 446, y, 40, "8", "Song length in bars (ignored with FULL SONG).");
+    label (x0 + 494, y, 30, "BPM");
+    edit (kTagBpm, x0 + 524, y, 48, "auto", "Tempo. Empty = the style's usual tempo.");
+
+    y += 30;
+    label (x0, y, 30, "KEY");
+    edit (kTagKey, x0 + 30, y, 70, "auto", "Key, like A minor. Empty = the style's usual key.");
+    formButton_ = new NeonButton (CRect (x0 + 108, y + 1, x0 + 200, y + 25), "FULL SONG", [this] (NeonButton& b) {
         s_->request.useForm = b.isHot ();
     });
     formButton_->setToggle (true);
+    tip (formButton_, "On: a whole song with intro, verses, choruses and so on. Off: just BARS bars of one idea.");
     frame->addView (formButton_);
-
-    y += 32;
-    label (x0, y, 40, "TITLE");
-    edit (kTagTitle, x0 + 42, y, 170, "midi-agent");
-    generateButton_ = new NeonButton (CRect (x0 + 222, y - 1, x0 + 360, y + 27), "\xE2\x9C\xA6 GENERATE \xE2\x9C\xA6",
+    label (x0 + 208, y, 36, "TITLE");
+    edit (kTagTitle, x0 + 244, y, 130, "midi-agent", "Song name, used for the saved file.");
+    generateButton_ = new NeonButton (CRect (x0 + 382, y - 1, x0 + 520, y + 27), "\xE2\x9C\xA6 GENERATE \xE2\x9C\xA6",
                                       [this] (NeonButton&) { actionGenerate (); });
     generateButton_->setHot (true);
+    tip (generateButton_, "Write a new song from the styles above. Every press is a new song.");
     frame->addView (generateButton_);
-    settingsStatus_ = new NeonLabel (CRect (x0 + 370, y, kWidth - 8, y + 24), "", theme::tinyFont (), theme::kTextDim);
+
+    y += 32;
+    label (x0, y, 62, "SKILL DIR", "Where the midi-agent-skill folder is (set once).");
+    edit (kTagSkillRoot, x0 + 64, y, 360, "folder with SKILL.md", "Where the midi-agent-skill folder is (set once).");
+    auto* find = new NeonButton (CRect (x0 + 430, y + 1, x0 + 514, y + 25), "FIND...", [this] (NeonButton&) { actionFindSkill (); });
+    tip (find, "Pick the SKILL.md file inside the midi-agent-skill folder.");
+    frame->addView (find);
+    settingsStatus_ = new NeonLabel (CRect (x0 + 520, y, kWidth - 8, y + 24), "", theme::tinyFont (), theme::kTextDim);
     frame->addView (settingsStatus_);
+}
 
-    y += 32;
-    label (x0, y, 50, "PYTHON");
-    edit (kTagPython, x0 + 52, y, 120, "python");
-    label (x0 + 182, y, 62, "SKILL DIR");
-    edit (kTagSkillRoot, x0 + 244, y, 290, "folder with SKILL.md");
-    frame->addView (new NeonButton (CRect (x0 + 540, y + 1, x0 + 624, y + 25), "FIND...", [this] (NeonButton&) { actionFindSkill (); }));
-
-    y += 32;
-    frame->addView (new NeonLabel (CRect (x0, y, kWidth - 8, y + 20),
-                                   "piano roll: click = note, drag = move, edge = length, alt = velocity, right click = delete, ctrl+drag = select, ctrl+A / ctrl+D, arrows",
-                                   theme::tinyFont (), theme::kViolet));
+void MidiAgentEditor::refreshSurpriseLabel ()
+{
+    if (!surpriseLabel_)
+        return;
+    double v = s_->variation;
+    const char* words = v < 0.15 ? "stay on style" : v < 0.4 ? "a few new ideas" : v < 0.7 ? "fresh take" : "surprise me";
+    surpriseLabel_->setText (std::string ("SURPRISE: ") + words);
 }
 
 // --- refresh ---------------------------------------------------------------
@@ -373,20 +441,19 @@ void MidiAgentEditor::refreshSettingsText ()
         if (edits_[t])
             edits_[t]->setText (v.c_str ());
     };
-    std::string weights;
-    for (size_t i = 0; i < s_->request.weights.size (); ++i)
-    {
-        char buf[32];
-        std::snprintf (buf, sizeof (buf), "%s%g", i ? "," : "", s_->request.weights[i]);
-        weights += buf;
-    }
-    set (kTagWeights, weights);
+    for (int i = 0; i < 3; ++i)
+        if (mixSliders_[i])
+        {
+            double w = static_cast<size_t> (i) < s_->request.weights.size () ? s_->request.weights[static_cast<size_t> (i)] : 1.0;
+            mixSliders_[i]->setValueNormalized (static_cast<float> (std::max (0.0, std::min (1.0, w))));
+        }
+    if (surpriseSlider_)
+        surpriseSlider_->setValueNormalized (static_cast<float> (s_->variation));
+    refreshSurpriseLabel ();
     set (kTagBars, std::to_string (s_->request.bars));
     set (kTagBpm, s_->request.bpm > 0 ? std::to_string (s_->request.bpm) : "");
-    set (kTagSeed, s_->request.seed >= 0 ? std::to_string (s_->request.seed) : "");
     set (kTagKey, s_->request.key);
     set (kTagTitle, s_->request.title);
-    set (kTagPython, s_->agent.pythonExe);
     set (kTagSkillRoot, s_->agent.skillRoot);
     if (formButton_)
         formButton_->setHot (s_->request.useForm);
@@ -405,7 +472,7 @@ void MidiAgentEditor::refreshSettingsText ()
         else if (s_->genres.empty ())
             settingsStatus_->setText ("no genres found in SKILL DIR/genres");
         else
-            settingsStatus_->setText (std::to_string (s_->genres.size ()) + " genres  \xE2\x80\xA2  plans/<title>.composition.json");
+            settingsStatus_->setText (std::to_string (s_->genres.size ()) + " styles");
     }
 }
 
@@ -422,6 +489,8 @@ void MidiAgentEditor::refreshAll ()
         const Segment* seg = s_->segment ();
         Track* t = s_->track ();
         std::string text = seg ? seg->name : std::string ("no segment");
+        if (seg && s_->segmentSelection.size () > 1)
+            text = std::to_string (s_->segmentSelection.size ()) + " sections";
         if (t)
             text += "  /  " + t->displayName (static_cast<size_t> (s_->selectedTrack));
         segLabel_->setText (text);
@@ -432,8 +501,8 @@ void MidiAgentEditor::refreshAll ()
         midiOutButton_->setHot (ctrl_->getParamNormalized (kParamMidiOut) > 0.5);
     if (gainSlider_)
         gainSlider_->setValueNormalized (static_cast<float> (ctrl_->getParamNormalized (kParamGain)));
-    if (previewButton_)
-        previewButton_->setHot (s_->loopPreview);
+    if (loopButton_)
+        loopButton_->setHot (s_->loopOn);
     frame->invalid ();
 }
 
@@ -452,17 +521,54 @@ void MidiAgentEditor::transportUpdated ()
     // drawn on the next idle tick
 }
 
-void MidiAgentEditor::selectSegment (int index)
+void MidiAgentEditor::selectSegment (int index, bool ctrl, bool shift)
 {
     if (index < 0 || index >= static_cast<int> (s_->segments.size ()))
         return;
-    s_->selectedSegment = index;
+    s_->clickSegment (index, ctrl, shift);
     s_->selectedNotes.clear ();
-    if (s_->loopPreview)
-        ctrl_->sendPreview (true); // move the loop to the new segment
+    if (s_->loopOn)
+        ctrl_->sendLoop (); // the loop follows the selection
+    // move Cubase's playhead to the clicked section (not when ctrl only toggles one)
+    if (!ctrl || shift)
+    {
+        const Segment* seg = s_->segment ();
+        if (seg && ctrl_->locateTick (seg->startTick))
+            lastLocateMillis_ = platform::nowMillis ();
+    }
     refreshAll ();
     if (roll_)
         roll_->segmentChanged ();
+}
+
+void MidiAgentEditor::toggleLoop ()
+{
+    s_->loopOn = loopButton_ && loopButton_->isHot ();
+    ctrl_->sendLoop ();
+    if (s_->loopOn)
+    {
+        Segment span = s_->selectionSpan ();
+        if (!s_->transport.playing || s_->transport.tick () < span.startTick || s_->transport.tick () >= span.endTick)
+            ctrl_->locateTick (span.startTick);
+        lastLocateMillis_ = platform::nowMillis ();
+        log ("loop on: " + span.name + " (press play in Cubase)");
+    }
+    else
+        log ("loop off");
+}
+
+void MidiAgentEditor::checkLoop ()
+{
+    // ponytail: polled on the editor tick; notes past the end are already silenced by the processor
+    if (!s_->loopOn || !s_->transport.playing)
+        return;
+    Segment span = s_->selectionSpan ();
+    int64_t now = s_->transport.tick ();
+    if (span.endTick > span.startTick && now >= span.endTick - kPPQ / 32 && platform::nowMillis () - lastLocateMillis_ > 250)
+    {
+        ctrl_->locateTick (span.startTick);
+        lastLocateMillis_ = platform::nowMillis ();
+    }
 }
 
 void MidiAgentEditor::selectTrack (int index)
@@ -501,15 +607,14 @@ CMessageResult MidiAgentEditor::notify (CBaseObject* sender, const char* message
         ++tick_;
         ctrl_->pumpJobs ();
         ctrl_->sendPoll ();
+        checkLoop ();
         // push edits to the processor once the mouse has rested for a moment
         if (s_->revision != pushedRevision_ && platform::nowMillis () - lastEditMillis_ > 120)
         {
             ctrl_->pushComposition ();
             pushedRevision_ = s_->revision;
-            if (s_->loopPreview)
-                ctrl_->sendPreview (true);
         }
-        if (s_->transport.playing || s_->transport.previewing || s_->busy || (tick_ % 8) == 0)
+        if (s_->transport.playing || s_->busy || (tick_ % 8) == 0)
             for (CView* v : dirtyEach_)
                 v->invalid ();
         if (logView_ && (tick_ % 5) == 0)
@@ -546,15 +651,22 @@ void MidiAgentEditor::valueChanged (CControl* control)
             roll_->invalid ();
         return;
     }
+    if (tag == kTagSurprise)
+    {
+        s_->variation = control->getValueNormalized ();
+        refreshSurpriseLabel ();
+        return;
+    }
     if (tag >= kTagGenreA && tag <= kTagGenreC)
     {
         readGenerateControls ();
         return;
     }
-    if (tag == kTagSkillRoot || tag == kTagPython)
+    if (tag == kTagSkillRoot)
     {
         readGenerateControls ();
-        s_->genres = s_->agent.valid () ? listGenres (s_->agent) : std::vector<std::string> ();
+        ctrl_->refreshSkill ();
+        ctrl_->pushComposition ();
         refreshGenreMenus ();
         refreshSettingsText ();
         return;
@@ -566,27 +678,28 @@ void MidiAgentEditor::readGenerateControls ()
 {
     auto text = [&] (Tag t) { return edits_[t] ? std::string (edits_[t]->getText ().getString ()) : std::string (); };
     s_->request.genres.clear ();
-    for (auto* m : genreMenus_)
+    s_->request.weights.clear ();
+    for (int i = 0; i < 3; ++i)
     {
+        COptionMenu* m = genreMenus_[i];
         if (!m)
             continue;
         int idx = m->getCurrentIndex ();
         if (idx > 0 && static_cast<size_t> (idx - 1) < s_->genres.size ())
+        {
             s_->request.genres.push_back (s_->genres[static_cast<size_t> (idx - 1)]);
+            // a style slid all the way left still counts a little, else it would vanish silently
+            double w = mixSliders_[i] ? mixSliders_[i]->getValueNormalized () : 1.0;
+            s_->request.weights.push_back (std::max (0.05, w));
+        }
     }
-    s_->request.weights.clear ();
-    for (const std::string& w : splitList (text (kTagWeights)))
-        s_->request.weights.push_back (std::atof (w.c_str ()));
+    s_->request.variation = s_->variation;
+    s_->request.seed = -1; // every GENERATE is a new song
     s_->request.bars = std::max (1, std::atoi (text (kTagBars).c_str ()));
     s_->request.bpm = std::atoi (text (kTagBpm).c_str ());
-    std::string seed = text (kTagSeed);
-    s_->request.seed = seed.empty () ? -1 : std::atoi (seed.c_str ());
     s_->request.key = text (kTagKey);
     std::string title = text (kTagTitle);
     s_->request.title = title.empty () ? "midi-agent" : title;
-    std::string py = text (kTagPython);
-    if (!py.empty ())
-        s_->agent.pythonExe = py;
     s_->agent.skillRoot = text (kTagSkillRoot);
     if (formButton_)
         s_->request.useForm = formButton_->isHot ();
@@ -612,15 +725,18 @@ void MidiAgentEditor::loadCompositionFile (const std::string& path, const std::s
         return;
     }
     int seg = s_->selectedSegment, trk = s_->selectedTrack;
+    std::vector<int> sel = s_->segmentSelection;
     ctrl_->setComposition (std::move (c), path, why + ": " + path);
     if (keepSelection)
     {
+        s_->segmentSelection = sel;
         s_->selectedSegment = std::min (seg, static_cast<int> (s_->segments.size ()) - 1);
         s_->selectedTrack = std::min (trk, static_cast<int> (s_->comp.tracks.size ()) - 1);
         if (s_->selectedSegment < 0)
             s_->selectedSegment = 0;
         if (s_->selectedTrack < 0)
             s_->selectedTrack = 0;
+        s_->rebuildSegments (); // drops selection entries past the end
         compositionReplaced ();
     }
 }
@@ -745,18 +861,12 @@ bool MidiAgentEditor::writeCompositionForPython (std::string& path)
 void MidiAgentEditor::actionRegenerate (bool trackOnly)
 {
     readGenerateControls ();
-    const Segment* seg = s_->segment ();
     Track* track = s_->track ();
-    if (!seg || !track)
+    if (s_->segments.empty () || !track)
         return;
     if (!s_->agent.valid ())
     {
         log ("ERROR set SKILL DIR first");
-        return;
-    }
-    if (seg->sectionIndex < 0)
-    {
-        log ("ERROR this song has no named sections; --regenerate needs one (generate with the skill first)");
         return;
     }
     if (trackOnly && track->role.empty ())
@@ -764,21 +874,39 @@ void MidiAgentEditor::actionRegenerate (bool trackOnly)
         log ("ERROR the track has no role, so the pipeline cannot regenerate it");
         return;
     }
+    std::vector<std::string> sections;
+    for (int i : s_->segmentSelection)
+        if (s_->segments[static_cast<size_t> (i)].sectionIndex >= 0)
+            sections.push_back (s_->segments[static_cast<size_t> (i)].name);
+    if (sections.empty ())
+    {
+        log ("ERROR this song has no named sections; REGEN needs one (generate with the skill first)");
+        return;
+    }
     std::string path;
     if (!writeCompositionForPython (path))
         return;
     RegenerateRequest req;
     req.resumePath = path;
-    req.section = seg->name;
     req.genres = s_->request.genres;
+    req.weights = s_->request.weights;
+    req.variation = s_->variation;
     if (trackOnly)
         req.layers = {track->role};
-    std::random_device rd;
-    req.seed = static_cast<int> (rd () % 100000);
     AgentConfig cfg = s_->agent;
-    log ("$ " + joinList (buildRegenerateArgs (cfg, req, path), " "));
-    ctrl_->startJob ("regenerating " + seg->name, [this, cfg, req, path] () -> std::function<void ()> {
-        AgentResult r = runRegenerate (cfg, req, path);
+    std::string label = sections.size () == 1 ? sections[0] : std::to_string (sections.size ()) + " sections";
+    ctrl_->startJob ("regenerating " + label, [this, cfg, req, path, sections] () -> std::function<void ()> {
+        AgentResult r;
+        std::random_device rd;
+        for (const std::string& section : sections) // one call per section, each on the result of the last
+        {
+            RegenerateRequest one = req;
+            one.section = section;
+            one.seed = static_cast<int> (rd () % 1000000); // a new idea on every press
+            r = runRegenerate (cfg, one, path);
+            if (!r.ok)
+                break;
+        }
         return [this, r] () {
             if (!r.ok)
             {
@@ -797,29 +925,17 @@ void MidiAgentEditor::actionRegenerate (bool trackOnly)
 
 void MidiAgentEditor::actionClearSegment ()
 {
-    const Segment* seg = s_->segment ();
     Track* track = s_->track ();
-    if (!seg || !track)
+    if (!track)
         return;
-    replaceSegmentNotes (*track, *seg, {});
+    for (int i : s_->segmentSelection)
+        replaceSegmentNotes (*track, s_->segments[static_cast<size_t> (i)], {});
     s_->selectedNotes.clear ();
     s_->touch ();
     onNoteEdit ();
-    log ("cleared " + track->displayName (static_cast<size_t> (s_->selectedTrack)) + " in " + seg->name);
+    log ("cleared " + track->displayName (static_cast<size_t> (s_->selectedTrack)) + " in " + s_->selectionSpan ().name);
     if (roll_)
         roll_->invalid ();
-}
-
-void MidiAgentEditor::togglePreview ()
-{
-    bool on = previewButton_ && previewButton_->isHot ();
-    if (on && !s_->segment ())
-    {
-        previewButton_->setHot (false);
-        return;
-    }
-    ctrl_->sendPreview (on);
-    log (on ? "preview loop on: " + s_->segment ()->name : "preview loop off");
 }
 
 std::string MidiAgentEditor::autoSavePath () const
@@ -827,12 +943,24 @@ std::string MidiAgentEditor::autoSavePath () const
     return platform::joinPath (ctrl_->workDir (), platform::safeName (s_->comp.title));
 }
 
+Composition MidiAgentEditor::selectionClip (int trackIndex) const
+{
+    // the span from the first to the last selected section; sections left out
+    // of a ctrl+click selection stay silent, so every part keeps its place
+    Composition src = s_->comp;
+    if (s_->segmentSelection.size () > 1)
+        for (int i = s_->segmentSelection.front () + 1; i < s_->segmentSelection.back (); ++i)
+            if (!s_->isSegmentSelected (i))
+                for (Track& t : src.tracks)
+                    replaceSegmentNotes (t, s_->segments[static_cast<size_t> (i)], {});
+    return extractSegment (applyInstrumentMaps (src, s_->maps), s_->selectionSpan (), trackIndex);
+}
+
 std::string MidiAgentEditor::prepareSegmentMidi (bool trackOnly)
 {
-    const Segment* seg = s_->segment ();
-    if (!seg)
+    if (!s_->segment ())
         return "";
-    Composition clip = extractSegment (s_->comp, *seg, trackOnly ? s_->selectedTrack : -1);
+    Composition clip = selectionClip (trackOnly ? s_->selectedTrack : -1);
     std::string name = platform::safeName (clip.title);
     if (trackOnly && s_->track ())
         name += "-" + platform::safeName (s_->track ()->displayName (static_cast<size_t> (s_->selectedTrack)));
@@ -849,13 +977,13 @@ std::string MidiAgentEditor::prepareSegmentMidi (bool trackOnly)
 
 std::string MidiAgentEditor::prepareSegmentWav ()
 {
-    const Segment* seg = s_->segment ();
-    if (!seg)
+    if (!s_->segment ())
         return "";
-    std::string path = platform::joinPath (ctrl_->workDir (), platform::safeName (s_->comp.title + "-" + seg->name) + ".wav");
+    Segment span = s_->selectionSpan ();
+    std::string path = platform::joinPath (ctrl_->workDir (), platform::safeName (s_->comp.title + "-" + span.name) + ".wav");
     RenderOptions o;
     std::string err;
-    if (!renderToWav (s_->comp, seg, o, path, err))
+    if (!renderToWav (s_->comp, &span, o, path, err))
     {
         log ("ERROR " + err);
         return "";
@@ -866,7 +994,8 @@ std::string MidiAgentEditor::prepareSegmentWav ()
 
 void MidiAgentEditor::actionRenderWav (bool wholeSong)
 {
-    const Segment* seg = s_->segment ();
+    Segment span = s_->selectionSpan ();
+    const Segment* seg = s_->segment () ? &span : nullptr;
     if (!wholeSong && !seg)
         return;
     auto* selector = CNewFileSelector::create (frame, CNewFileSelector::kSelectSaveFile);
@@ -909,7 +1038,8 @@ void MidiAgentEditor::actionFindSkill ()
             return;
         }
         s_->agent.skillRoot = root;
-        s_->genres = listGenres (s_->agent);
+        ctrl_->refreshSkill ();
+        ctrl_->pushComposition ();
         refreshGenreMenus ();
         refreshSettingsText ();
         log ("skill folder: " + root + " (" + std::to_string (s_->genres.size ()) + " genres)");

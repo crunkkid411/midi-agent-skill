@@ -1,0 +1,58 @@
+{
+  "about": "Jordan's installed guitar/bass tone plug-ins, listed 2026-11-05 from C:\\Program Files\\Common Files\\VST3 and C:\\Program Files\\Steinberg\\VSTPlugins. 'kind' is only filled where the product is certain; 'UNVERIFIED' entries need a check before the engine relies on them. Tone lives in the DAW, not in the MIDI: this list is for choosing a plug-in/preset to suggest, not for rendering.",
+  "used_in_test_file": {
+    "source": "TEST-FILE.cpr (Jordan's metalcore reference project), read 2026-11-05",
+    "plugins": ["Toneforge Jeff Loomis", "Toneforge - Menace", "Toneforge - Ben Bruce", "Archetype Tim Henson X", "JST BG-Guitars"],
+    "presets_seen": {
+      "Toneforge Jeff Loomis": [
+        "_01 Jeff Loomis / Loomy song_main rhythm",
+        "_03 Joey Sturgis / Attack Attack! - All My Life - Rhythm",
+        "_04 Joey Sturgis Tones / _02 Lead / Bogren Dual Gains",
+        "_04 Joey Sturgis Tones / _03 Clean / Breakup All In",
+        "_04 Joey Sturgis Tones / _03 Clean / Sparkle All In",
+        "Ld - In The Mix"
+      ]
+    },
+    "notes": "Every preset was saved as 'changed' (Jordan tweaked it). Which preset sits on which track is UNVERIFIED. guitar 1 (main rhythm) has three Toneforge inserts."
+  },
+  "guitar_amp_suites": [
+    {"name": "Toneforge Jeff Loomis", "vendor": "Joey Sturgis Tones", "used_in_test_file": true},
+    {"name": "Toneforge - Menace", "vendor": "Joey Sturgis Tones", "used_in_test_file": true},
+    {"name": "Toneforge - Ben Bruce", "vendor": "Joey Sturgis Tones", "used_in_test_file": true},
+    {"name": "Toneforge - Guilty Pleasure", "vendor": "Joey Sturgis Tones"},
+    {"name": "Toneforge - Misha Mansoor Advanced", "vendor": "Joey Sturgis Tones"},
+    {"name": "Toneforge Disruptor", "vendor": "Joey Sturgis Tones"},
+    {"name": "Archetype Tim Henson X", "vendor": "Neural DSP", "used_in_test_file": true},
+    {"name": "Archetype Misha Mansoor X", "vendor": "Neural DSP"},
+    {"name": "Archetype Petrucci X", "vendor": "Neural DSP"},
+    {"name": "Archetype Gojira", "vendor": "Neural DSP"},
+    {"name": "Archetype Nolly", "vendor": "Neural DSP"},
+    {"name": "Archetype Abasi", "vendor": "Neural DSP"},
+    {"name": "Archetype Plini", "vendor": "Neural DSP"},
+    {"name": "Archetype Cory Wong", "vendor": "Neural DSP"},
+    {"name": "Fortin Cali Suite", "vendor": "Neural DSP"},
+    {"name": "Fortin Nameless Suite", "vendor": "Neural DSP"},
+    {"name": "Fortin NTS Suite", "vendor": "Neural DSP"},
+    {"name": "Guitar Rig 6", "vendor": "Native Instruments"},
+    {"name": "OMEGA Ampworks Granophyre", "vendor": "OMEGA Ampworks"},
+    {"name": "Amped - Roots", "vendor": "ML Sound Lab"},
+    {"name": "Emissary", "vendor": "Ignite Amps"},
+    {"name": "Clairvoyant - Amp Suite", "vendor": "UNVERIFIED"}
+  ],
+  "bass_amps": [
+    {"name": "Bassforge Hellraiser", "vendor": "Joey Sturgis Tones"},
+    {"name": "Darkglass Ultra", "vendor": "Neural DSP"},
+    {"name": "Parallax", "vendor": "Neural DSP"}
+  ],
+  "cab_ir_and_pedals": [
+    {"name": "NadIR", "vendor": "Ignite Amps", "kind": "impulse-response cab loader"},
+    {"name": "JST Demon Fuzz", "vendor": "Joey Sturgis Tones", "kind": "fuzz pedal"}
+  ],
+  "guitar_bus_processors": [
+    {"name": "JST BG-Guitars", "vendor": "Joey Sturgis Tones", "used_in_test_file": true},
+    {"name": "JW BG-Guitars", "vendor": "UNVERIFIED"},
+    {"name": "BD BG-Electric", "vendor": "UNVERIFIED"}
+  ],
+  "unclassified_check_before_use": ["AMH", "Atlas", "Electra", "Valves", "Scorch", "VG-AMBER2", "VG-IRON", "VG-IRON2", "VG-CARBON", "VG-SILK", "VG-SPARKLE"],
+  "guitar_instruments_not_amps": ["Odin III", "Odin II", "Ample Metal Hellrazer", "MONSTER Guitar", "Clean Electric Guitar", "Haunted Guitar Lite"]
+}

@@ -77,6 +77,16 @@ For a genre you need to understand:
    - WebSearch: `"{vst}" MIDI map keyswitches articulations manual`
    - Record note maps, keyswitch behaviour (latching or held), velocity-switched articulations and playable range. Mark anything unverified in the map's `notes`.
 
+10. **Find how the guitar is PLAYED in this genre** (pick direction, mute type, accents). This fills the articulations the composers write:
+   - Start from what Jordan actually does: `claude_code/skills/jordan-guitars/SKILL.md`. It holds his measured rules and the reasons behind them.
+   - Watch the **Solemn Tones YouTube channel** (makers of Odin III; Jordan's chosen source for guitar programming, 2026-11-05) for videos on the genre or technique. They show the keyswitches in a real piano roll. Use the `watch` skill and read the frames, not just the transcript.
+   - **Generic guitar-teacher advice is not enough.** Rules like "downstroke on the beat, upstroke on the and" are beginner strumming advice. That kind of advice made metalcore impossible until the code was rewritten. Trust, in this order:
+     1. Jordan's own projects.
+     2. Solemn Tones demonstrations.
+     3. Isolated tracks, transcriptions or the player's own words for the genre's real records.
+     4. Lesson blogs, last.
+   - Record pick direction per subdivision (which notes are down and which are up), section-start strokes, where pinch harmonics, slides and bends fall, and mute type per section.
+
 ### What to Extract
 
 For each genre, identify:

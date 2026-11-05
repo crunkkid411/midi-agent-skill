@@ -3,6 +3,7 @@
 // worker thread, and saves the bridge settings in its own state.
 #pragma once
 
+#include "core/transport_remote.h"
 #include "source/session.h"
 
 #include "public.sdk/source/vst/vsteditcontroller.h"
@@ -43,7 +44,14 @@ public:
     void pushComposition ();
     void sendMute (int track, bool mute);
     void sendSolo (int track, bool solo);
-    void sendPreview (bool on);
+    /// LOOP on/off over the selected segments (the processor stops notes past the end).
+    void sendLoop ();
+    /// Play one short note of track `track` on the synth and on the part's MIDI bus.
+    void sendAudition (int track, int pitch, double velocity, const std::string& drumLane);
+    /// Move the host playhead (MMC over the "MIDI Agent Remote" port). False if the port is missing.
+    bool locateTick (int64_t tick);
+    /// Re-read genres and instrument maps from the skill folder.
+    void refreshSkill ();
     void sendPoll ();
     void sendPanic ();
     void setParam (Steinberg::Vst::ParamID id, double normalized);
@@ -66,6 +74,8 @@ private:
     std::mutex jobMutex_;
     std::deque<std::function<void ()>> completions_;
     std::atomic<bool> busy_ {false};
+    TransportRemote remote_;
+    bool remoteWarned_ {false};
 };
 
 } // namespace midiagent

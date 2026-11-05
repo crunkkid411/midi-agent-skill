@@ -45,7 +45,9 @@ TEST_CASE (regenerate_args_match_the_cli)
     r.layers = {"drums"};
     r.genres = {"scenecore"};
     r.seed = 17;
+    r.variation = 0.5;
     std::string j = joinList (buildRegenerateArgs (cfg, r, "/plans/song.composition.json"), " ");
+    CHECK (j.find ("--variation 0.5") != std::string::npos);
     CHECK (j.find ("--resume /plans/song.composition.json") != std::string::npos);
     CHECK (j.find ("--regenerate verse2.B") != std::string::npos);
     CHECK (j.find ("--layers drums") != std::string::npos);

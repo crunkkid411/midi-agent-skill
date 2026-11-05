@@ -5,6 +5,7 @@
 //   midiagent_host_smoke <path to MIDI Agent.vst3> <composition.json>
 #include "core/composition.h"
 #include "core/platform.h"
+#include "core/part_buses.h"
 #include "source/messages.h"
 
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
@@ -21,6 +22,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <set>
 #include <string>
 
 using namespace Steinberg;
@@ -48,11 +50,25 @@ bool sendJson (IComponent* component, const std::string& json)
     return r == kResultTrue;
 }
 
-bool sendPreview (IComponent* component, bool on, int64 start, int64 end)
+bool sendAudition (IComponent* component, int track, int pitch)
 {
     FUnknownPtr<IConnectionPoint> cp (component);
     auto* msg = new HostMessage ();
-    msg->setMessageID (midiagent::kMsgPreview);
+    msg->setMessageID (midiagent::kMsgAudition);
+    msg->getAttributes ()->setInt (midiagent::kAttrTrack, track);
+    msg->getAttributes ()->setInt (midiagent::kAttrPitch, pitch);
+    msg->getAttributes ()->setInt (midiagent::kAttrMidiPitch, pitch);
+    msg->getAttributes ()->setFloat (midiagent::kAttrVelocity, 0.8);
+    tresult r = cp->notify (msg);
+    msg->release ();
+    return r == kResultTrue;
+}
+
+bool sendLoop (IComponent* component, bool on, int64 start, int64 end)
+{
+    FUnknownPtr<IConnectionPoint> cp (component);
+    auto* msg = new HostMessage ();
+    msg->setMessageID (midiagent::kMsgLoop);
     msg->getAttributes ()->setInt (midiagent::kAttrValue, on ? 1 : 0);
     msg->getAttributes ()->setInt (midiagent::kAttrStartTick, start);
     msg->getAttributes ()->setInt (midiagent::kAttrEndTick, end);
@@ -107,7 +123,22 @@ int main (int argc, char** argv)
         check (processor->setupProcessing (setup) == kResultTrue, "setupProcessing");
         component->activateBus (kAudio, kOutput, 0, true);
         component->activateBus (kEvent, kInput, 0, true);
-        component->activateBus (kEvent, kOutput, 0, true);
+        int32 outBuses = component->getBusCount (kEvent, kOutput);
+        std::printf ("MIDI outputs: %d\n", outBuses);
+        check (outBuses == midiagent::kPartBusCount, "one MIDI output per part");
+        for (int32 b = 0; b < outBuses; ++b)
+        {
+            BusInfo bi {};
+            component->getBusInfo (kEvent, kOutput, b, bi);
+            component->activateBus (kEvent, kOutput, b, true);
+            if (b < 3)
+            {
+                char name[129] {};
+                for (int k = 0; k < 128 && bi.name[k]; ++k)
+                    name[k] = static_cast<char> (bi.name[k]);
+                std::printf ("  bus %d: %s\n", b, name);
+            }
+        }
         check (component->setActive (true) == kResultTrue, "setActive");
         check (processor->setProcessing (true) == kResultTrue, "setProcessing");
 
@@ -136,6 +167,7 @@ int main (int argc, char** argv)
         int blocks = static_cast<int> (std::ceil (totalQuarters / qpBlock));
         int noteOns = 0, noteOffs = 0;
         double energy = 0.0;
+        std::set<int> busesUsed;
         bool firstEventOffsetOk = true;
         for (int b = 0; b < blocks; ++b)
         {
@@ -148,7 +180,10 @@ int main (int argc, char** argv)
                 if (e.sampleOffset < 0 || e.sampleOffset >= 512)
                     firstEventOffsetOk = false;
                 if (e.type == Event::kNoteOnEvent)
+                {
                     ++noteOns;
+                    busesUsed.insert (e.busIndex);
+                }
                 else if (e.type == Event::kNoteOffEvent)
                     ++noteOffs;
             }
@@ -168,6 +203,8 @@ int main (int argc, char** argv)
                      std::sqrt (energy / (blocks * 512.0)));
         check (noteOns == expectedOns, "every note of the played range was sent to the MIDI output");
         check (firstEventOffsetOk, "event sample offsets are inside the block");
+        std::printf ("parts on %d different MIDI outputs\n", static_cast<int> (busesUsed.size ()));
+        check (busesUsed.size () >= 3, "the parts go out on their own MIDI outputs");
         check (energy > 1.0, "the built-in synth produced audio while playing");
 
         // stop: every held note is released
@@ -183,26 +220,49 @@ int main (int argc, char** argv)
         }
         check (noteOffs == noteOns, "note offs match note ons after stop");
 
-        // preview loop while stopped: the internal clock plays the first bar
-        check (sendPreview (component, true, 0, 4 * midiagent::kPPQ), "preview message accepted");
-        int previewOns = 0;
-        for (int b = 0; b < blocks; ++b)
-        {
-            outEvents.clear ();
-            processor->process (data);
-            for (int32 i = 0; i < outEvents.getEventCount (); ++i)
+        auto countOns = [&] (int blocksToRun, double& lastOnQuarter) {
+            int ons = 0;
+            for (int b = 0; b < blocksToRun; ++b)
             {
-                Event e;
-                outEvents.getEvent (i, e);
-                if (e.type == Event::kNoteOnEvent)
-                    ++previewOns;
+                outEvents.clear ();
+                processor->process (data);
+                for (int32 i = 0; i < outEvents.getEventCount (); ++i)
+                {
+                    Event e;
+                    outEvents.getEvent (i, e);
+                    if (e.type == Event::kNoteOnEvent)
+                    {
+                        ++ons;
+                        lastOnQuarter = ctx.projectTimeMusic + e.sampleOffset * ctx.tempo / 60.0 / ctx.sampleRate;
+                    }
+                }
+                if (ctx.state & ProcessContext::kPlaying)
+                    ctx.projectTimeMusic += qpBlock;
             }
-        }
-        std::printf ("preview note ons over two loops: %d\n", previewOns);
-        check (previewOns > 0, "preview loop plays notes while the host is stopped");
-        sendPreview (component, false, 0, 0);
+            return ons;
+        };
+
+        // stopped: the plug-in never plays on its own clock
+        double last = -1;
+        check (countOns (blocks, last) == 0, "nothing plays while the host is stopped");
+
+        // LOOP over the first bar: no note starts past the loop end
+        check (sendLoop (component, true, 0, 4 * midiagent::kPPQ), "loop message accepted");
+        ctx.state = ProcessContext::kPlaying | ProcessContext::kTempoValid | ProcessContext::kProjectTimeMusicValid;
+        ctx.projectTimeMusic = 0.0;
+        last = -1;
+        int loopOns = countOns (blocks, last);
+        std::printf ("loop: %d note ons, last at quarter %.3f\n", loopOns, last);
+        check (loopOns > 0 && last < 4.0, "with LOOP on nothing starts past the loop end");
+        sendLoop (component, false, 0, 0);
+        ctx.state = ProcessContext::kTempoValid | ProcessContext::kProjectTimeMusicValid;
         outEvents.clear ();
         processor->process (data);
+
+        // audition while stopped: one short note on the part's output
+        check (sendAudition (component, 0, 60), "audition message accepted");
+        last = -1;
+        check (countOns (2, last) == 1, "clicking a note sounds it");
 
         // state round trip
         MemoryStream stream;

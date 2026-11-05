@@ -10,6 +10,7 @@
 //   arrows             transpose (shift = octave) / nudge by the snap value
 //   ctrl A / ctrl D    select all / duplicate the selection after itself
 //   mouse wheel        scroll pitches; ctrl + wheel zooms
+//   click a key / note sounds it (setOnAudition)
 #pragma once
 
 #include "source/session.h"
@@ -30,6 +31,8 @@ public:
     /// Scroll so the selected track's notes are in view.
     void scrollToContent ();
     void segmentChanged ();
+    /// Called with (pitch, velocity 0..1, drum lane or "") when a key or a note is clicked.
+    void setOnAudition (std::function<void (int, double, const std::string&)> f) { onAudition_ = std::move (f); }
 
     void draw (VSTGUI::CDrawContext* ctx) override;
     void onMouseDownEvent (VSTGUI::MouseDownEvent& event) override;
@@ -64,6 +67,8 @@ private:
 
     Session* s_;
     std::function<void ()> onEdit_;
+    std::function<void (int, double, const std::string&)> onAudition_;
+    void audition (const Track& track, int pitch, double velocity);
     double keyH_ {13.0};
     int topPitch_ {96};
     static constexpr double kKeyboardW = 56.0;

@@ -55,12 +55,12 @@ void HeaderView::draw (CDrawContext* ctx)
     ctx->setFillColor (CColor (6, 4, 12));
     ctx->drawRect (inner, kDrawFilled);
     ctx->setFont (theme::monoFont ());
-    ctx->setFontColor (t.playing ? theme::kLime : (t.previewing ? theme::kCyan : theme::kHotPink));
+    ctx->setFontColor (t.playing ? theme::kLime : theme::kHotPink);
     ctx->drawString (buf, inner, kCenterText);
     CRect lab (ro.left, ro.bottom + 2, ro.right, ro.bottom + 14);
     ctx->setFont (theme::tinyFont ());
     ctx->setFontColor (theme::kTextDim);
-    ctx->drawString (t.playing ? "HOST PLAYING" : (t.previewing ? "SEGMENT PREVIEW" : "STOPPED"), lab, kCenterText);
+    ctx->drawString (t.playing ? (s_->loopOn ? "PLAYING - LOOP" : "PLAYING") : "STOPPED", lab, kCenterText);
 
     // song facts
     std::snprintf (buf, sizeof (buf), "%.0f BPM", t.playing ? t.tempo : s_->comp.bpm);

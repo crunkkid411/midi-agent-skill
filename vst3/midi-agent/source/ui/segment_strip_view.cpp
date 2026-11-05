@@ -13,7 +13,7 @@ constexpr double kPad = 8.0;
 constexpr double kParentH = 14.0;
 } // namespace
 
-SegmentStripView::SegmentStripView (const CRect& size, Session* session, std::function<void (int)> onSelect)
+SegmentStripView::SegmentStripView (const CRect& size, Session* session, std::function<void (int, bool, bool)> onSelect)
 : CView (size), s_ (session), onSelect_ (std::move (onSelect))
 {
     setMouseEnabled (true);
@@ -91,7 +91,8 @@ void SegmentStripView::draw (CDrawContext* ctx)
     {
         const Segment& seg = s_->segments[i];
         CRect t = tileRect (i);
-        bool selected = static_cast<int> (i) == s_->selectedSegment;
+        bool selected = s_->isSegmentSelected (static_cast<int> (i));
+        bool focused = static_cast<int> (i) == s_->selectedSegment;
         bool hover = static_cast<int> (i) == hover_;
         if (selected)
         {
@@ -106,7 +107,8 @@ void SegmentStripView::draw (CDrawContext* ctx)
         shine.inset (1, 1);
         shine.bottom = shine.top + t.getHeight () * 0.4;
         theme::fillGradient (ctx, shine, 4, CColor (255, 255, 255, selected ? 110 : 40), CColor (255, 255, 255, 0));
-        theme::strokeRoundRect (ctx, t, 5, selected ? theme::kChromeHi : (hover ? theme::kCyan : theme::kChromeLo), 1.0);
+        theme::strokeRoundRect (ctx, t, 5, focused ? theme::kLime : (selected ? theme::kChromeHi : (hover ? theme::kCyan : theme::kChromeLo)),
+                                focused ? 2.0 : 1.0);
 
         std::string name = seg.name;
         size_t dot = name.find ('.');
@@ -123,7 +125,7 @@ void SegmentStripView::draw (CDrawContext* ctx)
 
     // playhead
     int64_t total = s_->comp.lengthTicks ();
-    if ((s_->transport.playing || s_->transport.previewing) && total > 0)
+    if (total > 0)
     {
         int64_t tick = s_->transport.tick ();
         if (tick >= 0 && tick < total)
@@ -139,11 +141,14 @@ void SegmentStripView::draw (CDrawContext* ctx)
 
 void SegmentStripView::onMouseDownEvent (MouseDownEvent& event)
 {
-    if (!event.buttonState.isLeft ())
+    // On Jordan's PC ctrl + left click arrives as a right click with ctrl held.
+    bool ctrl = event.modifiers.has (ModifierKey::Control);
+    bool shift = event.modifiers.has (ModifierKey::Shift);
+    if (!event.buttonState.isLeft () && !(event.buttonState.isRight () && ctrl))
         return;
     int i = tileAt (event.mousePosition);
     if (i >= 0 && onSelect_)
-        onSelect_ (i);
+        onSelect_ (i, ctrl, shift);
     event.consumed = true;
 }
 

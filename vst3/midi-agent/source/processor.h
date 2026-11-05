@@ -1,7 +1,10 @@
-// The audio processor: plays the composition in sync with the host transport
-// (or loops one segment on its own clock while the transport is stopped),
-// renders the built-in synth to the audio output and the notes to the MIDI
-// output bus. The composition arrives from the controller as JSON by IMessage.
+// The audio processor: plays the composition in sync with the host transport,
+// renders the built-in synth to the audio output and sends every part to its
+// own MIDI output bus (core/part_buses.h). Two copies of the song arrive from
+// the controller as JSON: the clean notes (synth, saved state) and the copy
+// mapped for the real instruments (keyswitches, drum lanes) for MIDI out.
+// It never runs its own clock: LOOP only stops notes past the loop end while
+// the controller moves the host playhead back.
 #pragma once
 
 #include "core/composition.h"
@@ -38,7 +41,7 @@ public:
     Steinberg::uint32 PLUGIN_API getProcessContextRequirements () SMTG_OVERRIDE;
 
 private:
-    void installComposition (const std::string& json);
+    void installComposition (const std::string& json, const std::string& mappedJson);
     void swapPendingComposition ();
     void handleParameterChanges (Steinberg::Vst::ProcessData& data);
     void sendTransport ();
@@ -46,39 +49,48 @@ private:
     // The audio thread reads these; the main thread writes them under pendingMutex_.
     std::mutex pendingMutex_;
     std::shared_ptr<const Composition> pending_;
+    std::shared_ptr<const Composition> pendingMapped_;
     std::shared_ptr<const Composition> retired_; // freed on the main thread
+    std::shared_ptr<const Composition> retiredMapped_;
     std::atomic<bool> hasPending_ {false};
     std::shared_ptr<const Composition> current_;   // audio thread only
+    std::shared_ptr<const Composition> mapped_;    // audio thread only
+    std::vector<int> trackBus_;                    // audio thread, per track
     std::string stateJson_;                        // main thread: what getState writes
     std::vector<Timbre> timbres_;                  // audio thread, per track
     std::vector<float> pans_;
 
-    Sequencer sequencer_;
+    Sequencer sequencer_;   // clean notes -> built-in synth
+    Sequencer midiSeq_;     // mapped notes -> MIDI out
     Synth synth_;
     std::vector<SeqEvent> events_;
+    std::vector<SeqEvent> midiEvents_;
 
     std::atomic<float> gain_ {0.7f};
     std::atomic<bool> synthOn_ {true};
     std::atomic<bool> midiOut_ {true};
-    std::atomic<bool> preview_ {false};
+    std::atomic<bool> loop_ {false};
     std::atomic<bool> panic_ {false};
-    std::atomic<int64_t> previewStart_ {0};
-    std::atomic<int64_t> previewEnd_ {0};
+    std::atomic<int64_t> loopStart_ {0};
+    std::atomic<int64_t> loopEnd_ {0};
+    // audition: one note at a time, started from the UI thread
+    std::atomic<int> auditionPending_ {0}; // 0 none, 1 new note waiting
+    std::atomic<int> auditionTrack_ {0}, auditionPitch_ {60}, auditionMidiPitch_ {60};
+    std::atomic<float> auditionVelocity_ {0.8f};
+    int auditionHeldTrack_ {-1}, auditionHeldPitch_ {0}, auditionHeldMidiPitch_ {0}, auditionHeldBus_ {0};
+    int64_t auditionSamplesLeft_ {0};
     std::atomic<int> muteChanges_ {0};
     std::mutex muteMutex_;
     std::vector<std::pair<int, int>> muteQueue_; // (track, mute) ; solo uses track + 10000
 
     double sampleRate_ {44100.0};
     double lastTick_ {-1.0};      // host tick we expect next block to start at
-    double previewTick_ {0.0};
     bool wasPlaying_ {false};
-    bool wasPreviewing_ {false};
 
     // what the controller polls
     std::atomic<double> reportPpq_ {0.0};
     std::atomic<double> reportTempo_ {120.0};
     std::atomic<bool> reportPlaying_ {false};
-    std::atomic<bool> reportPreviewing_ {false};
     std::atomic<int> reportVoices_ {0};
 };
 

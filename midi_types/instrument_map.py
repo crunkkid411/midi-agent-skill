@@ -52,7 +52,28 @@ class InstrumentMap:
     legato_overlap: float = 0.0                   # beats glide notes overlap the next (mono glide)
     phrase_keys: Dict[str, List[int]] = field(default_factory=dict)  # phrase: part → keys
     part_map: Dict[str, str] = field(default_factory=dict)  # phrase: section name → part
+    # Pick direction: a note off the `pick_grid` (beats) is played on the up-stroke, so a
+    # down-stroke articulation becomes its `upstrokes` partner. Measured from Jordan's TEST file.
+    pick_grid: Optional[float] = None
+    upstrokes: Dict[str, str] = field(default_factory=dict)
+    # Hard velocity limits per resolved articulation ("default" for the rest). Odin III switches
+    # sound by velocity (127 = pinch, <35 = mutes), so an accent must never drift into those bands.
+    velocity_limits: Dict[str, Tuple[int, int]] = field(default_factory=dict)
     notes: Optional[str] = None
+
+    def limit_velocity(self, articulation: Optional[str], velocity: int) -> int:
+        lim = self.velocity_limits.get(self.resolve_articulation(articulation) or "") \
+            or self.velocity_limits.get("default")
+        return max(lim[0], min(lim[1], velocity)) if lim else velocity
+
+    def directed(self, articulation: Optional[str], start: float) -> Optional[str]:
+        """The articulation to send for a note starting at `start` beats."""
+        name = self.resolve_articulation(articulation)
+        if not self.pick_grid or name not in self.upstrokes:
+            return articulation
+        # snap to the nearest half-grid step first: humanize nudges notes a few ms off the grid
+        up = round(start / (self.pick_grid / 2)) % 2 == 1
+        return self.upstrokes[name] if up else articulation
 
     def drum_note(self, lane: Optional[str], gm_pitch: int) -> int:
         seen = set()
@@ -113,6 +134,7 @@ class InstrumentMap:
         if "range" in kw and kw["range"]:
             kw["range"] = tuple(kw["range"])
         kw["velocity_bands"] = {k: tuple(v) for k, v in d.get("velocity_bands", {}).items()}
+        kw["velocity_limits"] = {k: tuple(v) for k, v in d.get("velocity_limits", {}).items()}
         return cls(**kw)
 
 

@@ -402,7 +402,7 @@ void PianoRollView::draw (CDrawContext* ctx)
 
     // playhead
     int64_t ph = s_->transport.tick ();
-    if ((s_->transport.playing || s_->transport.previewing) && ph >= seg->startTick && ph < seg->endTick)
+    if (ph >= seg->startTick && ph < seg->endTick)
     {
         double x = tickToX (ph);
         ctx->setFrameColor (theme::kLime);
@@ -475,6 +475,20 @@ void PianoRollView::draw (CDrawContext* ctx)
     setDirty (false);
 }
 
+void PianoRollView::audition (const Track& track, int pitch, double velocity)
+{
+    if (!onAudition_)
+        return;
+    std::string lane;
+    for (const Note& n : track.notes) // drum lane of this key, from a note that uses it
+        if (n.pitch == pitch && !n.drum.empty ())
+        {
+            lane = n.drum;
+            break;
+        }
+    onAudition_ (pitch, velocity, lane);
+}
+
 void PianoRollView::onMouseDownEvent (MouseDownEvent& event)
 {
     const Segment* seg = s_->segment ();
@@ -486,6 +500,12 @@ void PianoRollView::onMouseDownEvent (MouseDownEvent& event)
     CPoint p = event.mousePosition;
     if (!gridRect ().pointInside (p))
     {
+        // the keyboard: sound the key
+        CRect keys = getViewSize ();
+        keys.right = keys.left + kKeyboardW;
+        keys.top += kRulerH;
+        if (event.buttonState.isLeft () && keys.pointInside (p))
+            audition (*track, std::max (0, std::min (127, yToPitch (p.y))), lastVelocity_);
         event.consumed = true;
         return;
     }
@@ -526,6 +546,8 @@ void PianoRollView::onMouseDownEvent (MouseDownEvent& event)
             dragOrig_.push_back (track->notes[i]);
         lastLength_ = track->notes[idx].length;
         lastVelocity_ = track->notes[idx].velocity;
+        if (onAudition_)
+            onAudition_ (track->notes[idx].pitch, track->notes[idx].velocity, track->notes[idx].drum);
     }
     else if (ctrl)
     {
@@ -553,6 +575,7 @@ void PianoRollView::onMouseDownEvent (MouseDownEvent& event)
         dragOrig_ = {n};
         drag_ = Drag::Create;
         changedDuringDrag_ = true;
+        audition (*track, n.pitch, n.velocity);
     }
     invalid ();
     event.consumed = true;

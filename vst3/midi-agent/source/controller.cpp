@@ -52,7 +52,7 @@ tresult PLUGIN_API MidiAgentController::initialize (FUnknown* context)
     };
     addSwitch (STR16 ("Synth On"), kParamSynthOn, true, ParameterInfo::kCanAutomate | ParameterInfo::kIsList);
     addSwitch (STR16 ("MIDI Out"), kParamMidiOut, true, ParameterInfo::kCanAutomate | ParameterInfo::kIsList);
-    addSwitch (STR16 ("Preview Loop"), kParamPreview, false, ParameterInfo::kIsList);
+    addSwitch (STR16 ("Loop Selection"), kParamPreview, false, ParameterInfo::kIsList);
     applyDefaults ();
     session_.addLog ("MIDI Agent ready. Set the skill folder, then GENERATE.");
 
@@ -64,7 +64,7 @@ tresult PLUGIN_API MidiAgentController::initialize (FUnknown* context)
         if (*root)
         {
             session_.agent.skillRoot = root;
-            session_.genres = listGenres (session_.agent);
+            refreshSkill ();
             session_.addLog ("skill folder from MIDIAGENT_SKILL_ROOT: " + session_.agent.skillRoot);
         }
     if (const char* py = std::getenv ("MIDIAGENT_PYTHON"))
@@ -122,6 +122,7 @@ tresult PLUGIN_API MidiAgentController::setComponentState (IBStream* state)
             session_.comp = std::move (comp);
             session_.rebuildSegments ();
             session_.dirty = false;
+            pushComposition (); // the mapped copy for MIDI out
             if (editor_)
                 editor_->compositionReplaced ();
         }
@@ -161,8 +162,10 @@ tresult PLUGIN_API MidiAgentController::setState (IBStream* state)
     for (const Json& w : j.get ("weights").asArray ())
         session_.request.weights.push_back (w.asNumber ());
     session_.snapTicks = j.get ("snap").asInt (kPPQ / 4);
-    if (session_.agent.valid ())
-        session_.genres = listGenres (session_.agent);
+    session_.variation = j.get ("variation").asNumber (0.5);
+    refreshSkill ();
+    if (!session_.comp.tracks.empty ())
+        pushComposition (); // maps are known now
     return kResultTrue;
 }
 
@@ -187,6 +190,7 @@ tresult PLUGIN_API MidiAgentController::getState (IBStream* state)
         weights.push (w);
     j.set ("weights", weights);
     j.set ("snap", session_.snapTicks);
+    j.set ("variation", session_.variation);
     std::string text = j.dump (0);
     IBStreamer streamer (state, kLittleEndian);
     streamer.writeInt32 (static_cast<int32> (text.size ()));
@@ -219,17 +223,15 @@ tresult PLUGIN_API MidiAgentController::notify (IMessage* message)
     {
         IAttributeList* a = message->getAttributes ();
         double ppq = 0, tempo = 120;
-        int64 playing = 0, voices = 0, previewing = 0;
+        int64 playing = 0, voices = 0;
         a->getFloat (kAttrPpq, ppq);
         a->getInt (kAttrPlaying, playing);
         a->getFloat (kAttrTempo, tempo);
         a->getInt (kAttrVoices, voices);
-        a->getInt (kAttrPreviewing, previewing);
         session_.transport.ppq = ppq;
         session_.transport.playing = playing != 0;
         session_.transport.tempo = tempo;
         session_.transport.voices = static_cast<int> (voices);
-        session_.transport.previewing = previewing != 0;
         if (editor_)
             editor_->transportUpdated ();
         return kResultTrue;
@@ -242,6 +244,7 @@ void MidiAgentController::setComposition (Composition comp, const std::string& p
     session_.comp = std::move (comp);
     session_.compositionPath = path;
     session_.selectedSegment = 0;
+    session_.segmentSelection.clear ();
     session_.selectedTrack = 0;
     session_.rebuildSegments ();
     session_.dirty = false;
@@ -259,7 +262,9 @@ void MidiAgentController::pushComposition ()
         return;
     msg->setMessageID (kMsgComposition);
     std::string json = session_.comp.toString ();
+    std::string mapped = applyInstrumentMaps (session_.comp, session_.maps).toString ();
     msg->getAttributes ()->setBinary (kAttrJson, json.data (), static_cast<uint32> (json.size ()));
+    msg->getAttributes ()->setBinary (kAttrMappedJson, mapped.data (), static_cast<uint32> (mapped.size ()));
     sendMessage (msg);
     msg->release ();
 }
@@ -288,20 +293,73 @@ void MidiAgentController::sendSolo (int track, bool solo)
     msg->release ();
 }
 
-void MidiAgentController::sendPreview (bool on)
+void MidiAgentController::sendLoop ()
 {
     IMessage* msg = allocateMessage ();
     if (!msg)
         return;
-    const Segment* seg = session_.segment ();
-    msg->setMessageID (kMsgPreview);
-    msg->getAttributes ()->setInt (kAttrValue, on && seg ? 1 : 0);
-    msg->getAttributes ()->setInt (kAttrStartTick, seg ? seg->startTick : 0);
-    msg->getAttributes ()->setInt (kAttrEndTick, seg ? seg->endTick : 0);
+    Segment span = session_.selectionSpan ();
+    bool on = session_.loopOn && span.endTick > span.startTick;
+    msg->setMessageID (kMsgLoop);
+    msg->getAttributes ()->setInt (kAttrValue, on ? 1 : 0);
+    msg->getAttributes ()->setInt (kAttrStartTick, span.startTick);
+    msg->getAttributes ()->setInt (kAttrEndTick, span.endTick);
     sendMessage (msg);
     msg->release ();
-    session_.loopPreview = on && seg;
-    setParam (kParamPreview, session_.loopPreview ? 1.0 : 0.0);
+    setParam (kParamPreview, on ? 1.0 : 0.0);
+}
+
+void MidiAgentController::sendAudition (int track, int pitch, double velocity, const std::string& drumLane)
+{
+    if (track < 0 || track >= static_cast<int> (session_.comp.tracks.size ()))
+        return;
+    const Track& t = session_.comp.tracks[static_cast<size_t> (track)];
+    int midiPitch = pitch;
+    if (const InstrumentMap* m = session_.maps.find (t.vst))
+    {
+        if (t.isDrum && m->type != "phrase")
+            midiPitch = m->drumNote (drumLane, pitch);
+        else if (m->type != "phrase")
+            midiPitch = m->fitPitch (pitch);
+    }
+    IMessage* msg = allocateMessage ();
+    if (!msg)
+        return;
+    msg->setMessageID (kMsgAudition);
+    msg->getAttributes ()->setInt (kAttrTrack, track);
+    msg->getAttributes ()->setInt (kAttrPitch, pitch);
+    msg->getAttributes ()->setInt (kAttrMidiPitch, midiPitch);
+    msg->getAttributes ()->setFloat (kAttrVelocity, velocity);
+    sendMessage (msg);
+    msg->release ();
+}
+
+bool MidiAgentController::locateTick (int64_t tick)
+{
+    if (!remote_.open ())
+    {
+        if (!remoteWarned_)
+            session_.addLog ("can't move Cubase's playhead: the MIDI port \"" + std::string (TransportRemote::kDefaultPort) +
+                             "\" is missing (create it in loopMIDI, then set it as Cubase's MIDI Machine Control input)");
+        remoteWarned_ = true;
+        return false;
+    }
+    remoteWarned_ = false;
+    // ponytail: constant tempo (the host's current one); tempo maps would need the host's tempo track
+    double tempo = session_.transport.tempo > 1.0 ? session_.transport.tempo : session_.comp.bpm;
+    return remote_.locateSeconds (static_cast<double> (tick) / kPPQ * 60.0 / tempo);
+}
+
+void MidiAgentController::refreshSkill ()
+{
+    session_.maps = InstrumentMaps ();
+    if (!session_.agent.valid ())
+    {
+        session_.genres.clear ();
+        return;
+    }
+    session_.genres = listGenres (session_.agent);
+    session_.maps.loadDir (platform::joinPath (session_.agent.skillRoot, "instruments"));
 }
 
 void MidiAgentController::sendPoll ()
@@ -322,7 +380,6 @@ void MidiAgentController::sendPanic ()
     msg->setMessageID (kMsgPanic);
     sendMessage (msg);
     msg->release ();
-    session_.loopPreview = false;
 }
 
 void MidiAgentController::setParam (ParamID id, double normalized)

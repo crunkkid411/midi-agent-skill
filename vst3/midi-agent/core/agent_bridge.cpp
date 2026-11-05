@@ -22,6 +22,33 @@ static std::string composeScript (const AgentConfig& cfg)
     return platform::joinPath (platform::joinPath (cfg.skillRoot, "skills"), "compose_from_profile.py");
 }
 
+namespace {
+std::string num (double v)
+{
+    char buf[32];
+    std::snprintf (buf, sizeof (buf), "%g", v);
+    return buf;
+}
+
+void pushWeightsAndVariation (std::vector<std::string>& a, const std::vector<std::string>& genres,
+                              const std::vector<double>& weights, double variation)
+{
+    if (!weights.empty () && weights.size () == genres.size ())
+    {
+        std::vector<std::string> w;
+        for (double v : weights)
+            w.push_back (num (v));
+        a.push_back ("--weights");
+        a.push_back (joinList (w));
+    }
+    if (variation > 0.0)
+    {
+        a.push_back ("--variation");
+        a.push_back (num (variation > 1.0 ? 1.0 : variation));
+    }
+}
+} // namespace
+
 std::vector<std::string> buildComposeArgs (const AgentConfig& cfg, const ComposeRequest& req, const std::string& outPath)
 {
     std::vector<std::string> a {cfg.pythonExe, composeScript (cfg)};
@@ -30,18 +57,7 @@ std::vector<std::string> buildComposeArgs (const AgentConfig& cfg, const Compose
         a.push_back ("--genres");
         a.push_back (joinList (req.genres));
     }
-    if (!req.weights.empty () && req.weights.size () == req.genres.size ())
-    {
-        std::vector<std::string> w;
-        for (double v : req.weights)
-        {
-            char buf[32];
-            std::snprintf (buf, sizeof (buf), "%g", v);
-            w.push_back (buf);
-        }
-        a.push_back ("--weights");
-        a.push_back (joinList (w));
-    }
+    pushWeightsAndVariation (a, req.genres, req.weights, req.variation);
     if (req.useForm)
         a.push_back ("--form");
     else
@@ -85,6 +101,7 @@ std::vector<std::string> buildRegenerateArgs (const AgentConfig& cfg, const Rege
         a.push_back ("--genres");
         a.push_back (joinList (req.genres));
     }
+    pushWeightsAndVariation (a, req.genres, req.weights, req.variation);
     a.push_back ("--resume");
     a.push_back (req.resumePath);
     a.push_back ("--regenerate");

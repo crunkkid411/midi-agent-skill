@@ -1,5 +1,6 @@
 // The segment strip: every segment of the song as a chrome tile, the parent
-// sections above, the playhead across them. Click selects a segment.
+// sections above, the playhead across them. Click selects a segment,
+// ctrl+click adds/removes one, shift+click selects a range.
 #pragma once
 
 #include "source/session.h"
@@ -14,7 +15,7 @@ namespace midiagent {
 class SegmentStripView : public VSTGUI::CView
 {
 public:
-    SegmentStripView (const VSTGUI::CRect& size, Session* session, std::function<void (int)> onSelect);
+    SegmentStripView (const VSTGUI::CRect& size, Session* session, std::function<void (int, bool ctrl, bool shift)> onSelect);
 
     void draw (VSTGUI::CDrawContext* ctx) override;
     void onMouseDownEvent (VSTGUI::MouseDownEvent& event) override;
@@ -27,7 +28,7 @@ private:
     int tileAt (const VSTGUI::CPoint& p) const;
 
     Session* s_;
-    std::function<void (int)> onSelect_;
+    std::function<void (int, bool, bool)> onSelect_;
     int hover_ {-1};
 };
 

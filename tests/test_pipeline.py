@@ -448,6 +448,16 @@ class TestRendering(unittest.TestCase):
         self.assertEqual(odin.keyswitch_for("open"), 25)             # Dwn Pick
         self.assertEqual(odin.keyswitch_for("pinch_harmonic"), 23)   # NSTY Pinch Hrm
         self.assertEqual(odin.fit_pitch(30), 42)                     # never lands on a keyswitch
+        # pick direction: 8th-grid notes down, the 16ths in between up (Jordan's TEST file)
+        self.assertEqual(odin.keyswitch_for(odin.directed("palm_mute", 1.5)), 12)
+        self.assertEqual(odin.keyswitch_for(odin.directed("palm_mute", 1.25)), 15)  # Up Op PM
+        self.assertEqual(odin.keyswitch_for(odin.directed("palm_mute", 1.51)), 12)  # humanized "&"
+        self.assertEqual(odin.keyswitch_for(odin.directed("open", 2.75)), 26)       # Up Pick
+        # Odin plays a pinch harmonic at velocity 127 and mutes below 35 (factory velocity map)
+        self.assertEqual(odin.limit_velocity("open", 127), 126)
+        self.assertEqual(odin.limit_velocity("open", 20), 35)
+        self.assertEqual(odin.limit_velocity("pinch_harmonic", 127), 127)
+        self.assertEqual(odin.limit_velocity("dead", 90), 14)
         self.assertIsNone(odin.velocity_for("palm_mute", 0.5))     # keyswitch wins
         odin.keyswitches.pop("down_pick")
         self.assertIsNotNone(odin.velocity_for("open", 0.5))       # no keyswitch → band

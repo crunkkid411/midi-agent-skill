@@ -17,28 +17,28 @@
   "default_articulation": "open",
   "velocity_bands": {
     "dead": [
-      15,
-      30
-    ],
-    "palm_mute": [
-      90,
-      100
+      1,
+      14
     ],
     "palm_mute_tight": [
-      67,
-      90
+      15,
+      24
+    ],
+    "palm_mute": [
+      25,
+      34
     ],
     "open": [
       84,
-      117
-    ],
-    "pinch_harmonic": [
-      110,
-      120
+      125
     ],
     "bend": [
       84,
-      117
+      125
+    ],
+    "pinch_harmonic": [
+      127,
+      127
     ]
   },
   "keyswitches": {
@@ -90,9 +90,40 @@
     "finger_pluck": "finger_pluck_open",
     "slap": "thumb_slap"
   },
+  "velocity_limits": {
+    "default": [
+      35,
+      126
+    ],
+    "nasty_pinch_harmonic": [
+      35,
+      127
+    ],
+    "pinch": [
+      35,
+      127
+    ],
+    "down_mute_dead": [
+      8,
+      14
+    ],
+    "up_mute_dead": [
+      8,
+      14
+    ]
+  },
+  "pick_grid": 0.5,
+  "upstrokes": {
+    "down_pick": "up_pick",
+    "down_open_palm_mute": "up_open_palm_mute",
+    "down_mute_semi": "up_mute_semi",
+    "down_mute_closed": "up_mute_closed",
+    "down_mute_dead": "up_mute_dead"
+  },
   "keyswitch_latching": false,
   "keyswitch_lead": 0.03,
   "source": "Keyswitches copied from Jordan's own Cubase Expression Map 'ODIN 3 HJ 2' (C:\\Users\\only1\\Documents\\Cubase Maps and being extra\\Cubase Expression Maps\\ODIN 3 HJ 2 3.expressionmap; 'ODIN 3 HJ' and 'ODIN 3' in the same folder are identical). Checked 2026-11-05 against TEST-FILE.cpr: guitar 1 / guitar 2 / Gtr Clean / Gtr_Clean_2 use that map and the Cubase Key Editor shows the same slots (C0 Alt Pick, C#0 Dwn Pick ...). Note numbers are MIDI numbers; Cubase names them with C3 = 60, so 24 = 'C0' and 12 = 'C-1' in Cubase. The keyswitches sit at MIDI 0-35 (+101), so playable notes are kept at 36 and up ('range').",
   "how_jordan_uses_it": "See claude_code/skills/jordan-guitars/SKILL.md. Short version: chug riffs = Down Open Palm Mute (with Up Open Palm Mute on the off-beat pickups) at a flat velocity ~98; held/accented chords = Down Pick at velocity 117; lead and melody lines = Down Mute Semi / Alt Pick at 84 with 117 accents; one Nasty Pinch Harmonic at a riff's peak; whammy-style pitch-bend wobble (+2/-2 semitones) on the last beat of a phrase.",
-  "notes": "Solemn Tones Odin III: standalone VST3 8-string baritone, every fret on every string. Odin's own Keyswitch Latching is OFF on all of Jordan's instances, so the renderer holds the keyswitch for each note it affects (keyswitch_latching=false). Articulations with a keyswitch use it; anything else falls back to the velocity bands (fitted to the velocities Jordan uses). Per-track tone settings (vibrato, pickup, pick attack, tuning scale) live in the Odin instances of the Cubase template, not here."
+  "notes": "Solemn Tones Odin III: standalone VST3 8-string baritone, every fret on every string. Odin's own Keyswitch Latching is OFF on all of Jordan's instances, so the renderer holds the keyswitch for each note it affects (keyswitch_latching=false). Articulations with a keyswitch use it; anything else falls back to the velocity bands (fitted to the velocities Jordan uses). Per-track tone settings (vibrato, pickup, pick attack, tuning scale) live in the Odin instances of the Cubase template, not here.",
+  "velocity_bands_source": "Odin III factory velocity map (official walkthrough klAbrHifvnY 0:59): 127 pinch, 126-35 normal, 34-25 palm mute, 24-15 closed mute, 14-0 dead. 'open' uses Jordan's 84-125 inside the normal band. Only used when an articulation has no keyswitch."
 }
