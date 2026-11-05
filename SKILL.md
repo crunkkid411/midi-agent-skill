@@ -216,6 +216,8 @@ automation (filter, volume, pitch, macros). The renderer maps them per track:
 - Serum 2 / Vital: CCs, pitch bend and legato glides
 - General MIDI otherwise Set a role's `vst`
 in the profile, or `--vst role=slug` for any genre. See `instruments/README.md`.
+How Jordan himself programs Odin III guitars (his keyswitch map, velocities, routing):
+`claude_code/skills/jordan-guitars/SKILL.md`.
 
 ---
 

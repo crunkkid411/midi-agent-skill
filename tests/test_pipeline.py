@@ -443,9 +443,13 @@ class TestRendering(unittest.TestCase):
 
     def test_keyswitches_held_across_notes(self):
         odin = InstrumentMap.from_dict(json.loads((ROOT / "instruments/odin-iii.json").read_text()))
-        odin.keyswitches["palm_mute"] = 24
-        self.assertEqual(odin.keyswitch_for("palm_mute"), 24)
+        # Jordan's Cubase expression map 'ODIN 3 HJ 2'
+        self.assertEqual(odin.keyswitch_for("palm_mute"), 12)        # Dwn Op PM
+        self.assertEqual(odin.keyswitch_for("open"), 25)             # Dwn Pick
+        self.assertEqual(odin.keyswitch_for("pinch_harmonic"), 23)   # NSTY Pinch Hrm
+        self.assertEqual(odin.fit_pitch(30), 42)                     # never lands on a keyswitch
         self.assertIsNone(odin.velocity_for("palm_mute", 0.5))     # keyswitch wins
+        odin.keyswitches.pop("down_pick")
         self.assertIsNotNone(odin.velocity_for("open", 0.5))       # no keyswitch → band
         merged = _keyswitch_events([(24, 0.0, 0.5), (24, 0.5, 1.0), (25, 1.0, 2.0)], latching=False)
         self.assertEqual(merged, [(24, 0.0, 1.0), (25, 1.0, 2.0)])
